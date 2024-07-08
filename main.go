@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"log"
-	"strings"
-	"strconv"	
 	"context"
 	"encoding/csv"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"go.einride.tech/can/pkg/socketcan"
 )
 
@@ -39,25 +40,27 @@ func main() {
 	// -------------------- Now do CAN stuff --------------------
 	conn, _ := socketcan.DialContext(context.Background(), "can", canConfig)
 	recv := socketcan.NewReceiver(conn)
-
 	counter := 0
 
 	for recv.Receive() {
 		frame := recv.Frame()
 
-		csvFrame := [][]string {{
-			strconv.FormatUint(uint64(frame.ID), 10),
-			strconv.FormatUint(uint64(frame.Length), 10),
-		},}
-
-		for _, data := range csvFrame {
-			if err := w.Write(data); err != nil {
-				log.Fatalln("Error writing headers to CSV", err)
-			}
+		var hexData []string
+		for i := 0; i < int(frame.Length); i++ {
+			hexData = append(hexData, fmt.Sprintf("%02X", frame.Data[i]))
 		}
 
-		// Testing, just log 10 times
-		if counter > 10 {
+		csvFrame := append([]string{
+			strconv.FormatUint(uint64(frame.ID), 10),
+			strconv.FormatUint(uint64(frame.Length), 10),
+		}, hexData...)
+
+		if err := w.Write(csvFrame); err != nil {
+			log.Fatalln("Error writing headers to CSV", err)
+		}
+
+		// Testing, just log x amount of times
+		if counter > 20 {
 			break;
 		} else {
 			counter++
