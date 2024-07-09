@@ -14,7 +14,8 @@ import (
 
 func main() {
 	// Temp config:
-	canConfig := "vcan0"
+	configCanDevice := "vcan0"
+	configStopDataloggingId := uint32(1911)
 
 	fmt.Println("--- Datalogging initialising... ---")
 
@@ -38,18 +39,27 @@ func main() {
 
 
 	// -------------------- Now do CAN stuff --------------------
-	conn, _ := socketcan.DialContext(context.Background(), "can", canConfig)
+	conn, _ := socketcan.DialContext(context.Background(), "can", configCanDevice)
+	defer conn.Close()
 	recv := socketcan.NewReceiver(conn)
-	counter := 0
 
 	for recv.Receive() {
 		frame := recv.Frame()
+		
+		// Button input from user to stop the datalogging
+		if frame.ID == configStopDataloggingId {
+			return
+		}
+
+		// if err := frame.Validate(); err != nil {
+		// 	fmt.Println("Error validating frame:", err)
+		// }
 
 		var hexData []string
 		for i := 0; i < int(frame.Length); i++ {
 			hexData = append(hexData, fmt.Sprintf("%02X", frame.Data[i]))
 		}
-
+		
 		csvFrame := append([]string{
 			strconv.FormatUint(uint64(frame.ID), 10),
 			strconv.FormatUint(uint64(frame.Length), 10),
@@ -58,15 +68,7 @@ func main() {
 		if err := w.Write(csvFrame); err != nil {
 			log.Fatalln("Error writing headers to CSV", err)
 		}
-
-		// Testing, just log x amount of times
-		if counter > 20 {
-			break;
-		} else {
-			counter++
-		}
 	}
-
 
 	// Flush any buffered data to ensure all data is written to the file
 	w.Flush()
