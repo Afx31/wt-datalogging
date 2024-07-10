@@ -13,16 +13,13 @@ import (
 )
 
 func main() {
-	// Temp config:
+	// Config, move to a config file later
 	configCanDevice := "vcan0"
 	configStopDataloggingId := uint32(1911)
 
 	fmt.Println("--- Datalogging initialising... ---")
 
-	// -------------------- Write headers to CSV file first --------------------
-	headers := "id,dlc,b0,b1,b2,b3,b4,b5,b6,b7"
-	csvHeaders := strings.Split(headers, ",")
-	//Create a new file to write CSV data to
+	// -------------------- Create CSV file and write headers to it --------------------
 	file, err := os.Create("data.csv")
 	if err != nil {
 		log.Fatalf("Error creating file: %v", err)
@@ -33,12 +30,15 @@ func main() {
 	w := csv.NewWriter(file)
 	defer w.Flush()
 
+	headers := "id,dlc,b0,b1,b2,b3,b4,b5,b6,b7"
+	csvHeaders := strings.Split(headers, ",")
+
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV", err)
 	}
 
 
-	// -------------------- Now do CAN stuff --------------------
+	// -------------------- Read CAN and write to file --------------------
 	conn, _ := socketcan.DialContext(context.Background(), "can", configCanDevice)
 	defer conn.Close()
 	recv := socketcan.NewReceiver(conn)
