@@ -8,14 +8,23 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.einride.tech/can/pkg/socketcan"
 )
 
 func main() {
 	// Config, move to a config file later
+	// cansend vcan0 069#11223344
 	configCanDevice := "vcan0"
-	configStopDataloggingId := uint32(1911)
+	configStopDataloggingId := uint32(105) //hex = 69
+	// hertz options [200 = 5hz | 100 = 10hz | 50 = 20hz]
+	configHertz := 100
+
+	
+	duration := time.Duration(configHertz) * time.Millisecond
+	ticker := time.NewTicker(duration) // Create a ticker that ticks every 100 milliseconds
+	quit := make(chan struct{})// Channel to signal when to stop the ticker
 
 	fmt.Println("--- Datalogging initialising... ---")
 
