@@ -121,9 +121,6 @@ func main() {
 		}
 
 		// Iterate over all the ID's now to match current message
-		// Rules:
-			// If we need 2 bytes, we use `binary.BigEndian.Uint16() as it expects 2 bytes`
-			// IF we need 1 byte, we just shove into a Uint8
 		switch frame.ID {
 		case 660:
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
@@ -155,50 +152,6 @@ func main() {
 	if err := writer.Error(); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Println("CSV file 'data.csv' has been created successfully.")
 }
-
-
-
-
-
-// 	// -------------------- Read CAN and write to file --------------------
-// 	conn, _ := socketcan.DialContext(context.Background(), "can", configCanDevice)
-// 	defer conn.Close()
-// 	recv := socketcan.NewReceiver(conn)
-
-// 	for recv.Receive() {
-// 		frame := recv.Frame()
-		
-// 		// Button input from user to stop the datalogging
-// 		if frame.ID == configStopDataloggingId {
-// 			return
-// 		}
-
-// 		// if err := frame.Validate(); err != nil {
-// 		// 	fmt.Println("Error validating frame:", err)
-// 		// }
-
-// 		var hexData []string
-// 		for i := 0; i < int(frame.Length); i++ {
-// 			hexData = append(hexData, fmt.Sprintf("%02X", frame.Data[i]))
-// 		}
-		
-// 		csvFrame := append([]string{
-// 			strconv.FormatUint(uint64(frame.ID), 10),
-// 			strconv.FormatUint(uint64(frame.Length), 10),
-// 		}, hexData...)
-
-// 		if err := w.Write(csvFrame); err != nil {
-// 			log.Fatalln("Error writing headers to CSV", err)
-// 		}
-// 	}
-
-// 	// Flush any buffered data to ensure all data is written to the file
-// 	w.Flush()
-
-// 	if err := w.Error(); err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	log.Println("CSV file 'data.csv' has been created successfully.")
-// }
