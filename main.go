@@ -41,7 +41,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		select {
 		case t := <-ticker.C:
 			time := fmt.Sprintf("%02d.%02d", t.Second(), t.Nanosecond()/1e6)
-			fmt.Println(time)
+			//fmt.Println(time)
 			csvFrame := append([]string{
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
@@ -119,30 +119,35 @@ func main() {
 		if frame.ID == configStopDataloggingId {
 			return
 		}
-
+		
 		// Iterate over all the ID's now to match current message
 		switch frame.ID {
-		case 660:
+		// case 660:
+		case 1632:
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
-			localVoltage = frame.Data[5]
-		case 661:
+			localVoltage = frame.Data[5] / 10
+		// case 661:
+		case 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
-		case 662:
+		// case 662:
+		case 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
-			localMap = binary.BigEndian.Uint16(frame.Data[2:4])
-		case 664:
-			localLambdaRatio = binary.BigEndian.Uint16(frame.Data[0:2])
-		case 667:
+			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
+		// case 664:
+		case 1636:
+			localLambdaRatio = 32768 / binary.BigEndian.Uint16(frame.Data[0:2])
+		// case 667:
+		case 1639:
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
 			kelvinTemp := 1 / (A + B * math.Log(float64(oilTempResistance)) + C * math.Pow(math.Log(float64(oilTempResistance)), 3))
 			localOilTemp = uint16(kelvinTemp - 273.15)
 
 			// Oil Pressure
-			oilPressureResistance := binary.BigEndian.Uint16(frame.Data[2:4])
+			oilPressureResistance := float64(binary.BigEndian.Uint16(frame.Data[2:4])) / 819.2
 			kPaValue := ((float64(oilPressureResistance) - originalLow) / (originalHigh - originalLow) * (desiredHigh - desiredLow)) + desiredLow
 			localOilPressure = uint16(math.Round(kPaValue * 0.145038)) // Convert to psi
 		}
