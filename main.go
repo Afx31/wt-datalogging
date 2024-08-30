@@ -37,11 +37,15 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		log.Fatalln("Error writing header types to CSV")
 	}
 	
+	startTime := time.Now()
+	counter := 0
 	for {
 		select {
 		case t := <-ticker.C:
-			time := fmt.Sprintf("%02d.%02d", t.Second(), t.Nanosecond()/1e6)
-			//fmt.Println(time)
+			// Calc elapsed time from the start time, before proceeding
+			elapsed := t.Sub(startTime)
+			time := fmt.Sprintf("%02d.%02d", int(elapsed.Seconds()), counter)
+			
 			csvFrame := append([]string{
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
@@ -56,6 +60,13 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localOilTemp), 10),
 				strconv.FormatUint(uint64(localOilPressure), 10),
 			})
+
+			// Hacky, but it works
+			if (counter == 9) {
+				counter = 0
+			} else {
+				counter++
+			}
 			
 			if err := w.Write(csvFrame); err != nil {
 				log.Fatalln("Error writing data to CSV", err)
@@ -86,6 +97,11 @@ func main() {
 	var originalHigh float64 = 5 //4.5
 	var desiredLow float64 = -100 //0
 	var desiredHigh float64 = 1100 //1000
+
+	// Pauses the difference from the current time to the full second to then force the ticker to start from the full second
+	now := time.Now()
+	pauseDuration := time.Second - time.Duration(now.Nanosecond()) * time.Nanosecond
+	time.Sleep(pauseDuration)
 	
 	duration := time.Duration(configHertz) * time.Millisecond
 	ticker := time.NewTicker(duration) // Create a ticker that ticks every 100 milliseconds
@@ -122,25 +138,25 @@ func main() {
 		
 		// Iterate over all the ID's now to match current message
 		switch frame.ID {
-		// case 660:
-		case 1632:
+		case 660:
+		// case 1632:
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
 			localVoltage = frame.Data[5] / 10
-		// case 661:
-		case 1633:
+		case 661:
+		// case 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
-		// case 662:
-		case 1634:
+		case 662:
+		// case 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
-		// case 664:
-		case 1636:
+		case 664:
+		// case 1636:
 			localLambdaRatio = 32768 / binary.BigEndian.Uint16(frame.Data[0:2])
-		// case 667:
-		case 1639:
+		case 667:
+		// case 1639:
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
 			kelvinTemp := 1 / (A + B * math.Log(float64(oilTempResistance)) + C * math.Pow(math.Log(float64(oilTempResistance)), 3))
