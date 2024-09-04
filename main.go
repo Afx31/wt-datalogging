@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 	"math"
+	"io/fs"
 
 	"go.einride.tech/can/pkg/socketcan"
 )
@@ -44,7 +45,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		case t := <-ticker.C:
 			// Calc elapsed time from the start time, before proceeding
 			elapsed := t.Sub(startTime)
-			time := fmt.Sprintf("%02d.%02d", int(elapsed.Seconds()), counter)
+			time := fmt.Sprintf("%02d.%01d", int(elapsed.Seconds()), counter)
 			
 			csvFrame := append([]string{
 				time,
@@ -82,7 +83,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 
 func main() {
 	// Config, move to a config file later
-	configCanDevice := "vcan0"
+	configCanDevice := "can0"
 	configStopDataloggingId := uint32(105) //hex = 69
 	// hertz options [200 = 5hz | 100 = 10hz | 50 = 20hz]
 	configHertz := 100
@@ -109,8 +110,20 @@ func main() {
 
 	fmt.Println("--- Datalogging initialising... ---")
 
+
 	// -------------------- Create CSV file and write headers to it --------------------
-	file, err := os.Create("data.csv")
+	// Count how many datalogs current exist, and increment the count for the new one
+	dir := "/home/pi/dev/data"
+	root := os.DirFS(dir)
+	mdFiles, err := fs.Glob(root, "*.csv")
+	
+	counter := 1;
+	for range mdFiles {
+		counter++;
+	}
+
+	// Now do the file creation
+	file, err := os.Create("data" + strconv.Itoa(counter) + ".csv")
 	if err != nil {
 		log.Fatalf("Error creating file: %v", err)
 	}
