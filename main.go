@@ -29,6 +29,11 @@ var localOilTemp uint16
 var localOilPressure uint16
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
+	startTimeStamp := []string{ time.Now().Format("02-01-2006 - 15:04:05")}
+	if  err := w.Write(startTimeStamp); err != nil {
+		log.Fatalln("Error writing datalogging start timestamp CSV")
+	}
+
 	csvHeaders := []string{"Time","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure"}
 	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p"}
 	if err := w.Write(csvHeaders); err != nil {
