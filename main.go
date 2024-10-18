@@ -5,12 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"fmt"
+	"io/fs"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"time"
-	"math"
-	"io/fs"
 
 	"go.einride.tech/can/pkg/socketcan"
 )
@@ -128,7 +128,7 @@ func main() {
 	}
 
 	// Now do the file creation
-	file, err := os.Create("data" + strconv.Itoa(counter) + ".csv")
+	file, err := os.Create("/home/pi/dev/data/datalog" + strconv.Itoa(counter) + ".csv")
 	if err != nil {
 		log.Fatalf("Error creating file: %v", err)
 	}
@@ -156,25 +156,20 @@ func main() {
 		
 		// Iterate over all the ID's now to match current message
 		switch frame.ID {
-		case 660:
-		// case 1632:
+		case 660, 1632:
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
 			localVoltage = frame.Data[5] / 10
-		case 661:
-		// case 1633:
+		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
-		case 662:
-		// case 1634:
+		case 662, 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
-		case 664:
-		// case 1636:
+		case 664, 1636:
 			localLambdaRatio = 32768 / binary.BigEndian.Uint16(frame.Data[0:2])
-		case 667:
-		// case 1639:
+		case 667, 1639:
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
 			kelvinTemp := 1 / (A + B * math.Log(float64(oilTempResistance)) + C * math.Pow(math.Log(float64(oilTempResistance)), 3))
