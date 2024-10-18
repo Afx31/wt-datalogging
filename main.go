@@ -11,9 +11,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"wrd-datalogging/internal/tracks"
-
-	// "wt-datalogging/internal/tracks"
+	"wt-datalogging/internal/tracks"
 
 	"github.com/stratoberry/go-gpsd"
 	"go.einride.tech/can/pkg/socketcan"
@@ -29,16 +27,6 @@ type LapStats struct {
 }
 
 var (
-	localLat float64
-	localLon float64
-	localTime time.Time
-	localLapStartTime time.Time
-	localCurrentLapTime int32
-	localLapCounter int8
-	localBestLapTime int32
-	localPbLapTime int32
-	localPreviousLapTime int32
-
 	localRpm uint16
 	localSpeed uint16
 	localGear uint8
@@ -50,6 +38,16 @@ var (
 	localLambdaRatio uint16
 	localOilTemp uint16
 	localOilPressure uint16
+
+	localLat float64
+	localLon float64
+	localTime time.Time
+	localLapStartTime time.Time
+	localCurrentLapTime int32
+	localLapCounter int8
+	localBestLapTime int32
+	localPbLapTime int32
+	localPreviousLapTime int32
 
 	lapStats = LapStats{Type: 3, LapCounter: 1}
 )
@@ -66,8 +64,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"HertzTime","Lat","Lon","CurrentTime","CurrentLapStartTime","CurrentLapTime","LapCounter","BestLapTime","PbLapTime","PreviousLapTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure"}
-	csvHeaderTypes := []string{"sec","int","int","time","time","time","int","time","time","time","rpm","kmh","int","v","c","c","int","kpa","int","c","p"}
+	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure","Latitude","Longitude","CurrentTime","CurrentLapStartTime","CurrentLapTime","LapCounter","BestLapTime","PbLapTime","PreviousLapTime"}
+	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p","int","int","time","time","time","int","time","time","time"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -88,15 +86,6 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 			
 			csvFrame := append([]string{
 				time,
-				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
-				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
-				formattedLocalTime,
-				formattedLapStartTime,
-				strconv.FormatInt(int64(localCurrentLapTime), 10),
-				strconv.FormatInt(int64(localLapCounter), 10),
-				strconv.FormatInt(int64(localBestLapTime), 10),
-				strconv.FormatInt(int64(localPbLapTime), 10),
-				strconv.FormatInt(int64(localPreviousLapTime), 10),
 				strconv.FormatUint(uint64(localRpm), 10),
 				strconv.FormatUint(uint64(localSpeed), 10),
 				strconv.FormatUint(uint64(localGear), 10),
@@ -108,6 +97,15 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localLambdaRatio), 10),
 				strconv.FormatUint(uint64(localOilTemp), 10),
 				strconv.FormatUint(uint64(localOilPressure), 10),
+				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
+				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
+				formattedLocalTime,
+				formattedLapStartTime,
+				strconv.FormatInt(int64(localCurrentLapTime), 10),
+				strconv.FormatInt(int64(localLapCounter), 10),
+				strconv.FormatInt(int64(localBestLapTime), 10),
+				strconv.FormatInt(int64(localPbLapTime), 10),
+				strconv.FormatInt(int64(localPreviousLapTime), 10),
 			})
 
 			// Hacky, but it works

@@ -1,4 +1,4 @@
-module wrd-datalogging
+module wt-datalogging
 
 go 1.22.4
 
