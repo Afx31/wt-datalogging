@@ -11,22 +11,52 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"wt-datalogging/internal/tracks"
 
+	"github.com/stratoberry/go-gpsd"
 	"go.einride.tech/can/pkg/socketcan"
 )
 
 /// --- Local variables to write to, which the datalogging will snapshot later ---
-var localRpm uint16
-var localSpeed uint16
-var localGear uint8
-var localVoltage uint8
-var localIat uint16
-var localEct uint16
-var localTps uint16
-var localMap uint16
-var localLambdaRatio uint16
-var localOilTemp uint16
-var localOilPressure uint16
+type LapStats struct {
+  Type int8
+  LapCounter int8
+	BestLapTime int32
+	PbLapTime int32
+	PreviousLapTime int32
+}
+
+var (
+	localRpm uint16
+	localSpeed uint16
+	localGear uint8
+	localVoltage uint8
+	localIat uint16
+	localEct uint16
+	localTps uint16
+	localMap uint16
+	localLambdaRatio uint16
+	localOilTemp uint16
+	localOilPressure uint16
+
+	localLat float64
+	localLon float64
+	localTime time.Time
+	localLapStartTime time.Time
+	localCurrentLapTime int32
+	localLapCounter int8
+	localBestLapTime int32
+	localPbLapTime int32
+	localPreviousLapTime int32
+
+	lapStats = LapStats{Type: 3, LapCounter: 1}
+)
+
+type CurrentLapData struct {
+	Type int8
+  LapStartTime time.Time
+	CurrentLapTime int32
+}
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
 	startTimeStamp := []string{ time.Now().Format("02-01-2006 - 15:04:05")}
@@ -34,8 +64,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"Time","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure"}
-	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p"}
+	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure","Latitude","Longitude","CurrentTime","CurrentLapStartTime","CurrentLapTime","LapCounter","BestLapTime","PbLapTime","PreviousLapTime"}
+	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p","int","int","time","time","time","int","time","time","time"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -51,6 +81,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 			// Calc elapsed time from the start time, before proceeding
 			elapsed := t.Sub(startTime)
 			time := fmt.Sprintf("%02d.%01d", int(elapsed.Seconds()), counter)
+			formattedLocalTime := localTime.Format("15:04:05 02-01-2006")
+			formattedLapStartTime := localLapStartTime.Format("15:04:05 02-01-2006")
 			
 			csvFrame := append([]string{
 				time,
@@ -65,6 +97,15 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localLambdaRatio), 10),
 				strconv.FormatUint(uint64(localOilTemp), 10),
 				strconv.FormatUint(uint64(localOilPressure), 10),
+				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
+				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
+				formattedLocalTime,
+				formattedLapStartTime,
+				strconv.FormatInt(int64(localCurrentLapTime), 10),
+				strconv.FormatInt(int64(localLapCounter), 10),
+				strconv.FormatInt(int64(localBestLapTime), 10),
+				strconv.FormatInt(int64(localPbLapTime), 10),
+				strconv.FormatInt(int64(localPreviousLapTime), 10),
 			})
 
 			// Hacky, but it works
@@ -84,6 +125,75 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 	}	
 
 	time.Sleep(3 * time.Second)
+}
+
+
+func containsCurrentCoordinates2(min float64, max float64, current float64) bool {
+  if (min < current && current > max) {
+    return true
+  }
+  return false
+}
+
+func handleGpsDatalogging() {
+	// Connect to the GPSD server
+	gps, err := gpsd.Dial("localhost:2947")
+	if err != nil {
+		fmt.Println("Failed to connect to GPSD: ", err)
+		return
+	}
+
+	currentLapData := CurrentLapData{Type: 2}
+  currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
+
+	// Define a reporting filter
+	tpvFilter := func(r interface{}) {
+		report := r.(*gpsd.TPVReport)
+    
+    // ----- Convert report.Time from UTC to Australia/Sydney -----
+    location, err := time.LoadLocation("Australia/Sydney")
+    if err != nil {
+      fmt.Println("Error loading location:", err)
+      return
+    }
+    convertedCurrentTime := report.Time.In(location)
+
+    // ---------- GPS/Lap Timing ----------
+    timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
+    currentLapData.CurrentLapTime = int32(timeDiff.Milliseconds())
+
+    if containsCurrentCoordinates2(tracks.TestLatMin, tracks.TestLatMax, report.Lat) && containsCurrentCoordinates2(tracks.TestLonMin, tracks.TestLonMax, report.Lon) {
+      if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
+        lapStats.BestLapTime = currentLapData.CurrentLapTime
+      }
+      if currentLapData.CurrentLapTime < lapStats.PbLapTime || lapStats.PbLapTime == 0 {
+        lapStats.PbLapTime = currentLapData.CurrentLapTime
+      }
+      lapStats.PreviousLapTime = currentLapData.CurrentLapTime
+      
+      // Start the next lap
+      currentLapData.LapStartTime = convertedCurrentTime
+      lapStats.LapCounter++;
+
+	    // --- Update local values for the datalog ---
+			localLapCounter = lapStats.LapCounter
+			localBestLapTime = lapStats.BestLapTime
+			localPbLapTime = lapStats.PbLapTime
+			localPreviousLapTime = lapStats.PreviousLapTime
+    }
+
+		// --- Update local values for the datalog ---
+		localLat = report.Lat
+		localLon = report.Lon
+		localTime = convertedCurrentTime
+		localLapStartTime = currentLapData.LapStartTime
+		localCurrentLapTime = currentLapData.CurrentLapTime
+	}
+  
+	gps.AddFilter("TPV", tpvFilter)
+	done := gps.Watch()
+	<-done
+	gps.Close()
 }
 
 func main() {
@@ -145,6 +255,9 @@ func main() {
 
 	// Do datalogging
 	go DataLoggingAtSpecificHertz(ticker, quit, writer)
+
+	// Do GPS datalogging
+	go handleGpsDatalogging()
 
 	for recv.Receive() {
 		frame := recv.Frame()
