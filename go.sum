@@ -1,5 +1,7 @@
 github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=
 github.com/golang/mock v1.6.0/go.mod h1:p6yTPP+5HYm5mzsMV8JkE6ZKdX+/wYM6Hr+LicevLPs=
+github.com/stratoberry/go-gpsd v1.3.0 h1:JxJOEC4SgD0QY65AE7B1CtJtweP73nqJghZeLNU9J+c=
+github.com/stratoberry/go-gpsd v1.3.0/go.mod h1:nVf/vTgfYxOMxiQdy9BtJjojbFRtG8H3wNula++VgkU=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 go.einride.tech/can v0.12.0 h1:6MW9TKycSovWqJxcYHpZEiuFCGuAfpqApCzTS15KrPk=
 go.einride.tech/can v0.12.0/go.mod h1:5n3+AonCfUso6PfjD9l2d0W2LxTFjjHOnHAm+UMS9Ws=
