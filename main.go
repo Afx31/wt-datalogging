@@ -20,7 +20,7 @@ import (
 /// --- Local variables to write to, which the datalogging will snapshot later ---
 type LapStats struct {
   Type int8
-  LapCounter int8
+  LapCount int8
 	BestLapTime int32
 	PbLapTime int32
 	PreviousLapTime int32
@@ -44,12 +44,12 @@ var (
 	localTime time.Time
 	localLapStartTime time.Time
 	localCurrentLapTime int32
-	localLapCounter int8
+	localLapCount int8
 	localBestLapTime int32
 	localPbLapTime int32
 	localPreviousLapTime int32
 
-	lapStats = LapStats{Type: 3, LapCounter: 1}
+	lapStats = LapStats{Type: 3, LapCount: 1}
 )
 
 type CurrentLapData struct {
@@ -64,8 +64,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure","Latitude","Longitude","CurrentTime","CurrentLapStartTime","CurrentLapTime","LapCounter","BestLapTime","PbLapTime","PreviousLapTime"}
-	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p","int","int","time","time","time","int","time","time","time"}
+	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure","Latitude","Longitude","LapCount","CurrentTime","CurrentLapStartTime","CurrentLapTime","BestLapTime","PbLapTime","PreviousLapTime"}
+	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p","int","int","int","time","time","time","time","time","time"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -99,10 +99,10 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localOilPressure), 10),
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
+				strconv.FormatInt(int64(localLapCount), 10),
 				formattedLocalTime,
 				formattedLapStartTime,
 				strconv.FormatInt(int64(localCurrentLapTime), 10),
-				strconv.FormatInt(int64(localLapCounter), 10),
 				strconv.FormatInt(int64(localBestLapTime), 10),
 				strconv.FormatInt(int64(localPbLapTime), 10),
 				strconv.FormatInt(int64(localPreviousLapTime), 10),
@@ -173,10 +173,10 @@ func handleGpsDatalogging() {
       
       // Start the next lap
       currentLapData.LapStartTime = convertedCurrentTime
-      lapStats.LapCounter++;
+      lapStats.LapCount++;
 
 	    // --- Update local values for the datalog ---
-			localLapCounter = lapStats.LapCounter
+			localLapCount = lapStats.LapCount
 			localBestLapTime = lapStats.BestLapTime
 			localPbLapTime = lapStats.PbLapTime
 			localPreviousLapTime = lapStats.PreviousLapTime
