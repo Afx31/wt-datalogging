@@ -129,7 +129,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 
 
 func containsCurrentCoordinates2(min float64, max float64, current float64) bool {
-  if (min < current && current > max) {
+  if (min <= current && current >= max) {
     return true
   }
   return false
