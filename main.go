@@ -162,7 +162,7 @@ func handleGpsDatalogging() {
     timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
     currentLapData.CurrentLapTime = int32(timeDiff.Milliseconds())
 
-    if containsCurrentCoordinates2(tracks.TestLatMin, tracks.TestLatMax, report.Lat) && containsCurrentCoordinates2(tracks.TestLonMin, tracks.TestLonMax, report.Lon) {
+    if containsCurrentCoordinates2(tracks.MorganParkLatMin, tracks.MorganParkLatMax, report.Lat) && containsCurrentCoordinates2(tracks.MorganParkLonMin, tracks.MorganParkLonMax, report.Lon) {
       if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
         lapStats.BestLapTime = currentLapData.CurrentLapTime
       }
