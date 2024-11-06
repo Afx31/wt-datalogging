@@ -128,11 +128,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 }
 
 
-func containsCurrentCoordinates2(min float64, max float64, current float64) bool {
-  if (min <= current && current >= max) {
-    return true
-  }
-  return false
+func isThisTheFinishLine(min float64, max float64, current float64) bool {
+  return current >= min && current <= max
 }
 
 func handleGpsDatalogging() {
@@ -162,7 +159,7 @@ func handleGpsDatalogging() {
     timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
     currentLapData.CurrentLapTime = int32(timeDiff.Milliseconds())
 
-    if containsCurrentCoordinates2(tracks.MorganParkLatMin, tracks.MorganParkLatMax, report.Lat) && containsCurrentCoordinates2(tracks.MorganParkLonMin, tracks.MorganParkLonMax, report.Lon) {
+    if isThisTheFinishLine(tracks.SMSPLatMin, tracks.SMSPLatMax, report.Lat) && isThisTheFinishLine(tracks.SMSPLonMin, tracks.SMSPLonMax, report.Lon) {
       if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
         lapStats.BestLapTime = currentLapData.CurrentLapTime
       }
