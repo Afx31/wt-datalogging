@@ -30,7 +30,7 @@ var (
 	localRpm uint16
 	localSpeed uint16
 	localGear uint8
-	localVoltage uint8
+	localVoltage float32
 	localIat uint16
 	localEct uint16
 	localTps uint16
@@ -89,7 +89,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localRpm), 10),
 				strconv.FormatUint(uint64(localSpeed), 10),
 				strconv.FormatUint(uint64(localGear), 10),
-				strconv.FormatUint(uint64(localVoltage), 10),
+				strconv.FormatFloat(float64(localVoltage), 'f', 1, 64),
 				strconv.FormatUint(uint64(localIat), 10),
 				strconv.FormatUint(uint64(localEct), 10),
 				strconv.FormatUint(uint64(localTps), 10),
@@ -270,7 +270,7 @@ func main() {
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
-			localVoltage = frame.Data[5] / 10
+			localVoltage = float32(math.Round(float64(float32(frame.Data[5]) * 1.05) * 10)) / 10
 		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
