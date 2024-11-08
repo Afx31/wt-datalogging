@@ -35,7 +35,7 @@ var (
 	localEct uint16
 	localTps uint16
 	localMap uint16
-	localLambdaRatio uint16
+	localLambdaRatio float64
 	localOilTemp uint16
 	localOilPressure uint16
 
@@ -94,7 +94,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localEct), 10),
 				strconv.FormatUint(uint64(localTps), 10),
 				strconv.FormatUint(uint64(localMap), 10),
-				strconv.FormatUint(uint64(localLambdaRatio), 10),
+				strconv.FormatFloat(float64(localLambdaRatio), 'f', 2, 64),
 				strconv.FormatUint(uint64(localOilTemp), 10),
 				strconv.FormatUint(uint64(localOilPressure), 10),
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
@@ -278,7 +278,7 @@ func main() {
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
 		case 664, 1636:
-			localLambdaRatio = 32768 / binary.BigEndian.Uint16(frame.Data[0:2])
+			localLambdaRatio = math.Round(float64(32768.0) / float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
 		case 667, 1639:
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
