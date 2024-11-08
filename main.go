@@ -84,7 +84,8 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 			formattedLocalTime := localTime.Format("15:04:05 02-01-2006")
 			formattedLapStartTime := localLapStartTime.Format("15:04:05 02-01-2006")
 			
-			csvFrame := append([]string{
+			var csvFrame []string
+			csvFrame = append(csvFrame, []string{
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
 				strconv.FormatUint(uint64(localSpeed), 10),
@@ -106,7 +107,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatInt(int64(localBestLapTime), 10),
 				strconv.FormatInt(int64(localPbLapTime), 10),
 				strconv.FormatInt(int64(localPreviousLapTime), 10),
-			})
+			}...)
 
 			// Hacky, but it works
 			if (counter == 9) {
