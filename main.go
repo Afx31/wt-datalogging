@@ -277,6 +277,7 @@ func main() {
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
 		case 662, 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
+			if localTps == 65535 { localTps = 0	}
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
 		case 664, 1636:
 			localLambdaRatio = math.Round(float64(32768.0) / float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
