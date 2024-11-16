@@ -289,7 +289,7 @@ func main() {
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
-			localVoltage = float32(math.Round(float64(float32(frame.Data[5]) * 1.05) * 10)) / 10
+			localVoltage = float32(frame.Data[5]) / 10.0
 		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
