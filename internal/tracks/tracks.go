@@ -1,12 +1,21 @@
 package tracks
 
-var (
-	SMSPLatMin 				= -33.803825
-	SMSPLatMax 				= -33.803653
-	SMSPLonMin 				= 150.870923
-	SMSPLonMax 				= 150.870962
-	MorganParkLatMin 	= -28.262069
-	MorganParkLatMax 	= -28.262085
-	MorganParkLonMin 	= 152.036327
-	MorganParkLonMax 	= 152.036430
-)
+type Track struct {
+	LatMin, LatMax float64
+	LonMin, LonMax float64
+}
+
+var Tracks = map[string]Track{
+	"smsp": {
+		LatMin: -33.803830,
+		LatMax: -33.803653,
+		LonMin: 150.870918,
+		LonMax: 150.870962,
+	},
+	"morganpark": {
+		LatMin: -28.262069,
+		LatMax: -28.262085,
+		LonMin: 152.036327,
+		LonMax: 152.036430,
+	},
+}

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"math"
@@ -17,7 +19,14 @@ import (
 	"go.einride.tech/can/pkg/socketcan"
 )
 
-/// --- Local variables to write to, which the datalogging will snapshot later ---
+
+type AppSettings struct {
+	CanChannel string `json:"canChannel"`
+  Track string `json:"track"`
+	LoggingHertz int `json:"loggingHertz"`
+}
+
+// --- Local variables to write to, which the datalogging will snapshot later ---
 type LapStats struct {
   Type int8
   LapCount int8
@@ -27,6 +36,9 @@ type LapStats struct {
 }
 
 var (
+	appSettings *AppSettings
+	currentTrack tracks.Track
+	
 	localRpm uint16
 	localSpeed uint16
 	localGear uint8
@@ -59,7 +71,7 @@ type CurrentLapData struct {
 }
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
-	startTimeStamp := []string{ time.Now().Format("02-01-2006 - 15:04:05")}
+	startTimeStamp := []string{ time.Now().Format("02-01-2006 - 15:04:05"), appSettings.Track}
 	if  err := w.Write(startTimeStamp); err != nil {
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
@@ -124,8 +136,6 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 			return
 		}
 	}	
-
-	time.Sleep(3 * time.Second)
 }
 
 
@@ -195,11 +205,17 @@ func handleGpsDatalogging() {
 }
 
 func main() {
-	// Config, move to a config file later
-	configCanDevice := "can0"
-	configStopDataloggingId := uint32(105) //hex = 69
-	// hertz options [200 = 5hz | 100 = 10hz | 50 = 20hz]
-	configHertz := 100
+	// -------------------- Read in settings file first --------------------
+	settingsFile, err := os.Open("/home/pi/dev/wt-racedash-settings.json")
+	if err != nil {
+		log.Fatal("Error: Cannot read in settings file")
+	}
+	defer settingsFile.Close()
+
+	data, _ := io.ReadAll(settingsFile)
+	json.Unmarshal(data, &appSettings)
+	currentTrack = tracks.Tracks[appSettings.Track]
+	// ---------------------------------------------------------------------
 
 	// --- Misc configure for oil values ---
 	// Oil Temp
@@ -217,9 +233,11 @@ func main() {
 	pauseDuration := time.Second - time.Duration(now.Nanosecond()) * time.Nanosecond
 	time.Sleep(pauseDuration)
 	
-	duration := time.Duration(configHertz) * time.Millisecond
+	// hertz options [200 = 5hz | 100 = 10hz | 50 = 20hz]
+	duration := time.Duration(appSettings.LoggingHertz) * time.Millisecond
 	ticker := time.NewTicker(duration) // Create a ticker that ticks every 100 milliseconds
 	quit := make(chan struct{})// Channel to signal when to stop the ticker
+
 
 	fmt.Println("--- Datalogging initialising... ---")
 
@@ -247,7 +265,7 @@ func main() {
 	defer writer.Flush()
 
 	// -------------------- Read CAN and write to file --------------------
-	conn, _ := socketcan.DialContext(context.Background(), "can", configCanDevice)
+	conn, _ := socketcan.DialContext(context.Background(), "can", appSettings.CanChannel)
 	defer conn.Close()
 	recv := socketcan.NewReceiver(conn)
 
@@ -261,7 +279,7 @@ func main() {
 		frame := recv.Frame()
 		
 		// Button input from user to stop the datalogging
-		if frame.ID == configStopDataloggingId {
+		if frame.ID == uint32(105) {
 			return
 		}
 		
@@ -299,5 +317,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("CSV file 'data.csv' has been created successfully.")
+	log.Println("CSV file 'datalog.csv' has been created successfully.")
 }
