@@ -29,10 +29,10 @@ type AppSettings struct {
 // --- Local variables to write to, which the datalogging will snapshot later ---
 type LapStats struct {
   Type int8
-  LapCount int8
-	BestLapTime int32
-	PbLapTime int32
-	PreviousLapTime int32
+  LapCount uint8
+	BestLapTime uint32
+	PbLapTime uint32
+	PreviousLapTime uint32
 }
 
 var (
@@ -55,11 +55,11 @@ var (
 	localLon float64
 	localTime time.Time
 	localLapStartTime time.Time
-	localCurrentLapTime int32
-	localLapCount int8
-	localBestLapTime int32
-	localPbLapTime int32
-	localPreviousLapTime int32
+	localCurrentLapTime uint32
+	localLapCount uint8
+	localBestLapTime uint32
+	localPbLapTime uint32
+	localPreviousLapTime uint32
 
 	lapStats = LapStats{Type: 3, LapCount: 1}
 )
@@ -67,7 +67,7 @@ var (
 type CurrentLapData struct {
 	Type int8
   LapStartTime time.Time
-	CurrentLapTime int32
+	CurrentLapTime uint32
 }
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
@@ -112,13 +112,13 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localOilPressure), 10),
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
-				strconv.FormatInt(int64(localLapCount), 10),
+				strconv.FormatUint(uint64(localLapCount), 10),
 				formattedLocalTime,
 				formattedLapStartTime,
-				strconv.FormatInt(int64(localCurrentLapTime), 10),
-				strconv.FormatInt(int64(localBestLapTime), 10),
-				strconv.FormatInt(int64(localPbLapTime), 10),
-				strconv.FormatInt(int64(localPreviousLapTime), 10),
+				strconv.FormatUint(uint64(localCurrentLapTime), 10),
+				strconv.FormatUint(uint64(localBestLapTime), 10),
+				strconv.FormatUint(uint64(localPbLapTime), 10),
+				strconv.FormatUint(uint64(localPreviousLapTime), 10),
 			}...)
 
 			// Hacky, but it works
@@ -168,7 +168,7 @@ func handleGpsDatalogging() {
 
     // ---------- GPS/Lap Timing ----------
     timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
-    currentLapData.CurrentLapTime = int32(timeDiff.Milliseconds())
+    currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
 
     if isThisTheFinishLine(tracks.SMSPLatMin, tracks.SMSPLatMax, report.Lat) && isThisTheFinishLine(tracks.SMSPLonMin, tracks.SMSPLonMax, report.Lon) {
       if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
