@@ -21,9 +21,10 @@ import (
 
 
 type AppSettings struct {
-	CanChannel string `json:"canChannel"`
-  Track string `json:"track"`
-	LoggingHertz int `json:"loggingHertz"`
+	CanChannel 		string `json:"canChannel"`
+  Track 				string `json:"track"`
+	LapTiming 		bool `json:"lapTiming"`
+	LoggingHertz 	int `json:"loggingHertz"`
 }
 
 // --- Local variables to write to, which the datalogging will snapshot later ---
@@ -273,7 +274,9 @@ func main() {
 	go DataLoggingAtSpecificHertz(ticker, quit, writer)
 
 	// Do GPS datalogging
+	if (appSettings.LapTiming) {
 	go handleGpsDatalogging()
+	}
 
 	for recv.Receive() {
 		frame := recv.Frame()
