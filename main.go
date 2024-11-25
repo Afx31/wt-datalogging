@@ -145,12 +145,23 @@ func isThisTheFinishLine(min float64, max float64, current float64) bool {
 }
 
 func handleGpsDatalogging() {
+	var gps *gpsd.Session
+	var err error
+
 	// Connect to the GPSD server
-	gps, err := gpsd.Dial("localhost:2947")
+	for {
+		gps, err = gpsd.Dial("localhost:2947")
 	if err != nil {
 		fmt.Println("Failed to connect to GPSD: ", err)
-		return
+			fmt.Println("Retrying in 10 seconds...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		fmt.Println("Connected to GPSD")
+		break
 	}
+	defer gps.Close()
 
 	currentLapData := CurrentLapData{Type: 2}
   currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
