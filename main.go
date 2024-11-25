@@ -29,10 +29,10 @@ type AppSettings struct {
 
 // --- Local variables to write to, which the datalogging will snapshot later ---
 type LapStats struct {
-  Type int8
-  LapCount uint8
-	BestLapTime uint32
-	PbLapTime uint32
+  Type 						int8
+  LapCount 				uint8
+	BestLapTime 		uint32
+	PbLapTime 			uint32
 	PreviousLapTime uint32
 }
 
@@ -40,35 +40,35 @@ var (
 	appSettings *AppSettings
 	currentTrack tracks.Track
 	
-	localRpm uint16
-	localSpeed uint16
-	localGear uint8
-	localVoltage float32
-	localIat uint16
-	localEct uint16
-	localTps uint16
-	localMap uint16
-	localLambdaRatio float64
-	localOilTemp uint16
-	localOilPressure uint16
+	localRpm 					uint16
+	localSpeed 				uint16
+	localGear 				uint8
+	localVoltage 			float32
+	localIat 					uint16
+	localEct 					uint16
+	localTps 					uint16
+	localMap 					uint16
+	localLambdaRatio  float64
+	localOilTemp 			uint16
+	localOilPressure  uint16
 
-	localLat float64
-	localLon float64
-	localTime time.Time
-	localLapStartTime time.Time
-	localCurrentLapTime uint32
-	localLapCount uint8
-	localBestLapTime uint32
-	localPbLapTime uint32
-	localPreviousLapTime uint32
+	localLat 							float64
+	localLon 							float64
+	localTime 						time.Time
+	localLapStartTime 		time.Time
+	localCurrentLapTime 	uint32
+	localLapCount 				uint8
+	localBestLapTime 			uint32
+	localPbLapTime 				uint32
+	localPreviousLapTime 	uint32
 
 	lapStats = LapStats{Type: 3, LapCount: 1}
 )
 
 type CurrentLapData struct {
-	Type int8
-  LapStartTime time.Time
-	CurrentLapTime uint32
+	Type 						int8
+  LapStartTime 		time.Time
+	CurrentLapTime 	uint32
 }
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
