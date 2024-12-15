@@ -136,7 +136,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 			ticker.Stop()
 			return
 		}
-	}	
+	}
 }
 
 
@@ -151,8 +151,8 @@ func handleGpsDatalogging() {
 	// Connect to the GPSD server
 	for {
 		gps, err = gpsd.Dial("localhost:2947")
-	if err != nil {
-		fmt.Println("Failed to connect to GPSD: ", err)
+		if err != nil {
+			fmt.Println("Failed to connect to GPSD: ", err)
 			fmt.Println("Retrying in 10 seconds...")
 			time.Sleep(10 * time.Second)
 			continue
@@ -162,7 +162,7 @@ func handleGpsDatalogging() {
 		break
 	}
 	defer gps.Close()
-
+	
 	currentLapData := CurrentLapData{Type: 2}
   currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
 
@@ -286,14 +286,14 @@ func main() {
 
 	// Do GPS datalogging
 	if (appSettings.LapTiming) {
-	go handleGpsDatalogging()
+		go handleGpsDatalogging()
 	}
 
 	for recv.Receive() {
 		frame := recv.Frame()
 		
 		// Button input from user to stop the datalogging
-		if frame.ID == uint32(105) {
+		if frame.ID == uint32(104) {
 			return
 		}
 		
