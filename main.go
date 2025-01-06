@@ -78,7 +78,7 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 	}
 
 	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","Lambda Ratio","Oil Temperature","Oil Pressure","Latitude","Longitude","LapCount","CurrentTime","CurrentLapStartTime","CurrentLapTime","BestLapTime","PbLapTime","PreviousLapTime"}
-	csvHeaderTypes := []string{"sec","rpm","kmh","int","v","c","c","int","kpa","int","c","p","int","int","int","time","time","time","time","time","time"}
+	csvHeaderTypes := []string{"sec","rpm","km/h","","V","C","C","%","kPa","lambda","C","kPa","deg","deg","","sec","sec","sec","sec","sec","sec"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
