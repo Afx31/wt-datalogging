@@ -69,6 +69,8 @@ type CurrentLapData struct {
 	Type 						int8
   LapStartTime 		time.Time
 	CurrentLapTime 	uint32
+	PreviousLat 		float64
+	PreviousLon 		float64
 }
 
 func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
@@ -139,9 +141,34 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 	}
 }
 
+func isThisTheFinishLine(x3 float64, y3 float64, x4 float64, y4 float64) bool {
+	x1 := currentTrack.LatMin
+	y1 := currentTrack.LonMin
+	x2 := currentTrack.LatMax
+	y2 := currentTrack.LonMax
 
-func isThisTheFinishLine(min float64, max float64, current float64) bool {
-  return current >= min && current <= max
+	// ** We calculate the intersection point on both the finish line AND movement line                
+	// - FinishLine = line across the track (min to max points)
+	// - MovementPath = previous location to current location
+
+	denominator := (x3 - x4) * (y1 - y2) - (y3 - y4) * (x1 - x2)
+
+	// If denominator is 0, the lines are parallel or coincident
+	if (math.Abs(denominator) < 1e-10) {
+		return false
+	}
+
+	// Calculate the numerators
+	tNumerator := (x3 - x1) * (y1 - y2) - (y3 - y1) * (x1 - x2)
+	uNumerator := (x3 - x1) * (y3 - y4) - (y3 - y1) * (x3 - x4)
+
+	// t - Parametric value along the finish line segment
+	// u - Parametric value along the movement path
+	t := tNumerator / denominator
+	u := uNumerator / denominator
+
+	// Check if the intersection happens on both segments
+	return (t >= 0 && t <= 1) && (u >= 0 && u <= 1)
 }
 
 func handleGpsDatalogging() {
@@ -182,8 +209,9 @@ func handleGpsDatalogging() {
     timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
     currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
 
-    if isThisTheFinishLine(tracks.SMSPLatMin, tracks.SMSPLatMax, report.Lat) && isThisTheFinishLine(tracks.SMSPLonMin, tracks.SMSPLonMax, report.Lon) {
-      if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
+		if isThisTheFinishLine(currentLapData.PreviousLat, currentLapData.PreviousLon, report.Lat, report.Lon) {
+			// Do lap stats
+			if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
         lapStats.BestLapTime = currentLapData.CurrentLapTime
       }
       if currentLapData.CurrentLapTime < lapStats.PbLapTime || lapStats.PbLapTime == 0 {
