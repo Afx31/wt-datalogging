@@ -7,15 +7,21 @@ type Track struct {
 
 var Tracks = map[string]Track{
 	"smsp": {
-		LatMin: -33.803830,
-		LatMax: -33.803653,
-		LonMin: 150.870918,
-		LonMax: 150.870962,
+		LatMin: -33.803855,
+		LatMax: -33.803649,
+		LonMin: 150.870905,
+		LonMax: 150.870954,
 	},
 	"morganpark": {
-		LatMin: -28.262069,
-		LatMax: -28.262085,
-		LonMin: 152.036327,
-		LonMax: 152.036430,
+		LatMin: -28.262057,
+		LatMax: -28.262087,
+		LonMin: 152.036282,
+		LonMax: 152.036477,
+	},
+	"winton": {
+		LatMin: -28.262057,
+		LatMax: -28.262087,
+		LonMin: 152.036282,
+		LonMax: 152.036477,
 	},
 }
