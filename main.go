@@ -58,9 +58,9 @@ var (
 	localActualCamAngle	float64
 	localOilTemp				uint16
 	localOilPressure		uint16
-	localEthanolInput1	uint16
+	localEthanolInput1	uint8
 	localEthanolInput2 	float64
-	localEthanolInput3 	uint16
+	localEthanolInput3 	uint8
 
 	localLat							float64
 	localLon							float64
@@ -379,14 +379,16 @@ func main() {
     // case 668, 1640:
 
 		case 669, 1641:
-      localEthanolInput1 = binary.BigEndian.Uint16(data[0:1])
+      localEthanolInput1 = data[0]
 
 			if (appSettings.Ecu == "s300") {
-      	localEthanolInput2 = float64(binary.BigEndian.Uint16(data[1:2])) * 2.56 // Duty
-      	localEthanolInput3 = binary.BigEndian.Uint16(data[2:3]) // Content
+      	localEthanolInput2 = float64(data[1]) * 2.56 // Duty
+      	localEthanolInput3 = data[2] // Content
 			} else if (appSettings.Ecu == "kpro") {
       	localEthanolInput2 = float64(binary.BigEndian.Uint16(data[1:2])) // Ethanol Content
-      	localEthanolInput3 = binary.BigEndian.Uint16(data[2:4]) // Fuel Temperature
+
+        // TODO: EthanolInput3 for KPro requires a 16-bit value, but S300 is 8-bit..
+      	//localEthanolInput3 = binary.BigEndian.Uint16(data[2:4]) // Fuel Temperature
 			}
 		}
 	}
