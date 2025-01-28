@@ -83,7 +83,7 @@ type CurrentLapData struct {
 	PreviousLon			float64
 }
 
-func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.Writer) {
+func DataLoggingAtSpecificHertz(w *csv.Writer) {
 	startTimeStamp := []string{ time.Now().Format("02-01-2006 - 15:04:05"), appSettings.Track, appSettings.Car, appSettings.Ecu}
 	if  err := w.Write(startTimeStamp); err != nil {
 		log.Fatalln("Error writing datalogging start timestamp CSV")
@@ -98,19 +98,29 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 		log.Fatalln("Error writing header types to CSV")
 	}
 	
-	startTime := time.Now()
-	counter := 0
+  startTime := time.Now()
+	ticker := time.NewTicker(time.Duration(appSettings.LoggingHertz) * time.Millisecond) // Create a ticker based on the hertz provided
+  defer ticker.Stop()
+
+  /* How the Hertz is calc'd
+   * - The NEW way takes the `startTime` and compares it against the `currentTime` each tick
+   * - Then work out the seconds and fraction of the `elapsedTime`
+   * - Then format as desired ("00.0, 00.1, 00.2")
+   */
 	for {
 		select {
-		case t := <-ticker.C:
-			// Calc elapsed time from the start time, before proceeding
-			elapsed := t.Sub(startTime)
-			time := fmt.Sprintf("%02d.%01d", int(elapsed.Seconds()), counter)
+    case <-ticker.C:
+      // Hertz calculation
+      currentTime := time.Now()
+      elapsed := currentTime.Sub(startTime).Milliseconds()
+      seconds := elapsed / 1000
+      fraction := (elapsed % 1000) / 100
+      time := fmt.Sprintf("%02d.%01d", seconds, fraction)
+
 			formattedLocalTime := localTime.Format("15:04:05 02-01-2006")
 			formattedLapStartTime := localLapStartTime.Format("15:04:05 02-01-2006")
 			
-			var csvFrame []string
-			csvFrame = append(csvFrame, []string{
+			csvFrame := []string {
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
 				strconv.FormatUint(uint64(localSpeed), 10),
@@ -140,21 +150,11 @@ func DataLoggingAtSpecificHertz(ticker *time.Ticker, quit chan struct{}, w *csv.
 				strconv.FormatUint(uint64(localBestLapTime), 10),
 				strconv.FormatUint(uint64(localPbLapTime), 10),
 				strconv.FormatUint(uint64(localPreviousLapTime), 10),
-			}...)
-
-			// Hacky, but it works
-			if (counter == 9) {
-				counter = 0
-			} else {
-				counter++
 			}
 			
 			if err := w.Write(csvFrame); err != nil {
 				log.Fatalln("Error writing data to CSV", err)
 			}
-		case <-quit:
-			ticker.Stop()
-			return
 		}
 	}
 }
@@ -286,17 +286,6 @@ func main() {
 	var desiredLow float64 = -100 //0
 	var desiredHigh float64 = 1100 //1000
 
-	// Pauses the difference from the current time to the full second to then force the ticker to start from the full second
-	now := time.Now()
-	pauseDuration := time.Second - time.Duration(now.Nanosecond()) * time.Nanosecond
-	time.Sleep(pauseDuration)
-	
-	// hertz options [200 = 5hz | 100 = 10hz | 50 = 20hz]
-	duration := time.Duration(appSettings.LoggingHertz) * time.Millisecond
-	ticker := time.NewTicker(duration) // Create a ticker that ticks every 100 milliseconds
-	quit := make(chan struct{})// Channel to signal when to stop the ticker
-
-
 	fmt.Println("--- Datalogging initialising... ---")
 
 	// -------------------- Create CSV file and write headers to it --------------------
@@ -327,7 +316,7 @@ func main() {
 	recv := socketcan.NewReceiver(conn)
 
 	// Do datalogging
-	go DataLoggingAtSpecificHertz(ticker, quit, writer)
+	go DataLoggingAtSpecificHertz(writer)
 
 	// Do GPS datalogging
 	if (appSettings.LapTiming) {
