@@ -356,13 +356,17 @@ func main() {
 			localLambdaRatio = math.Round(float64(32768.0) / float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
 		
 		// K-Pro only
-		case 665, 1637:
-			localKnockCounter = binary.BigEndian.Uint16(data[0:2])
+    case 665, 1637:
+      if (appSettings.Ecu == "kpro") {
+        localKnockCounter = binary.BigEndian.Uint16(data[0:2])
+      }
 
-		// K-Pro only
-		case 666, 1638:
-			localTargetCamAngle = float64(binary.BigEndian.Uint16(data[0:2]))
-			localActualCamAngle = float64(binary.BigEndian.Uint16(data[2:4]))
+    // K-Pro only
+    case 666, 1638:
+      if (appSettings.Ecu == "kpro") {
+        localTargetCamAngle = float64(binary.BigEndian.Uint16(data[0:2]))
+        localActualCamAngle = float64(binary.BigEndian.Uint16(data[2:4]))
+      }
 
 		case 667, 1639:
 			// Oil Temp
