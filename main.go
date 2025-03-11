@@ -349,8 +349,8 @@ func main() {
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
 		
 		case 663, 1635:
-			localInj = binary.BigEndian.Uint16(data[0:2]) / 1000
-			localIgn = binary.BigEndian.Uint16(data[2:4])
+			localInj = binary.BigEndian.Uint16(frame.Data[0:2]) / 1000
+			localIgn = binary.BigEndian.Uint16(frame.Data[2:4])
 
 		case 664, 1636:
 			localLambdaRatio = math.Round(float64(32768.0) / float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
@@ -358,14 +358,14 @@ func main() {
 		// K-Pro only
     case 665, 1637:
       if (appSettings.Ecu == "kpro") {
-        localKnockCounter = binary.BigEndian.Uint16(data[0:2])
+        localKnockCounter = binary.BigEndian.Uint16(frame.Data[0:2])
       }
 
     // K-Pro only
     case 666, 1638:
       if (appSettings.Ecu == "kpro") {
-        localTargetCamAngle = float64(binary.BigEndian.Uint16(data[0:2]))
-        localActualCamAngle = float64(binary.BigEndian.Uint16(data[2:4]))
+        localTargetCamAngle = float64(binary.BigEndian.Uint16(frame.Data[0:2]))
+        localActualCamAngle = float64(binary.BigEndian.Uint16(frame.Data[2:4]))
       }
 
 		case 667, 1639:
@@ -383,16 +383,16 @@ func main() {
     // case 668, 1640:
 
 		case 669, 1641:
-      localEthanolInput1 = data[0]
+      localEthanolInput1 = frame.Data[0]
 
 			if (appSettings.Ecu == "s300") {
-      	localEthanolInput2 = float64(data[1]) * 2.56 // Duty
-      	localEthanolInput3 = data[2] // Content
+      	localEthanolInput2 = float64(frame.Data[1]) * 2.56 // Duty
+      	localEthanolInput3 = frame.Data[2] // Content
 			} else if (appSettings.Ecu == "kpro") {
-      	localEthanolInput2 = float64(binary.BigEndian.Uint16(data[1:2])) // Ethanol Content
+      	localEthanolInput2 = float64(binary.BigEndian.Uint16(frame.Data[1:2])) // Ethanol Content
 
         // TODO: EthanolInput3 for KPro requires a 16-bit value, but S300 is 8-bit..
-      	//localEthanolInput3 = binary.BigEndian.Uint16(data[2:4]) // Fuel Temperature
+      	//localEthanolInput3 = binary.BigEndian.Uint16(frame.Data[2:4]) // Fuel Temperature
 			}
 		}
 	}
