@@ -45,7 +45,7 @@ var (
 	localRpm						uint16
 	localSpeed					uint16
 	localGear						uint8
-	localVoltage				float32
+	localVoltage				float64
 	localIat						uint16
 	localEct						uint16
 	localTps						uint16
@@ -56,11 +56,18 @@ var (
 	localKnockCounter		uint16
 	localTargetCamAngle	float64
 	localActualCamAngle	float64
-	localOilTemp				uint16
-	localOilPressure		uint16
+	localOilTemp				uint16 // Analog0
+	localOilPressure		uint16 // Analog1
+	localAnalog2				uint16
+	localAnalog3				uint16
+	localAnalog4				uint16
+	localAnalog5				uint16
+	localAnalog6				uint16
+	localAnalog7				uint16
 	localEthanolInput1	uint8
-	localEthanolInput2 	float64
-	localEthanolInput3 	uint8
+	localEthanolInput2S300	float64
+	localEthanolInput2KPro 	uint8
+	localEthanolInput3 	uint16
 
 	localLat							float64
 	localLon							float64
@@ -139,7 +146,13 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localOilTemp), 10),
 				strconv.FormatUint(uint64(localOilPressure), 10),
 				strconv.FormatUint(uint64(localEthanolInput1), 10),
-				strconv.FormatFloat(float64(localEthanolInput2), 'f', 2, 64),
+
+				// TODO: Make these configurable
+				// S300
+				strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64),
+				// KPro
+				strconv.FormatUint(uint64(localEthanolInput2KPro), 10),
+
 				strconv.FormatUint(uint64(localEthanolInput3), 10),
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
@@ -337,7 +350,7 @@ func main() {
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
-			localVoltage = float32(frame.Data[5]) / 10.0
+			localVoltage = float64(frame.Data[5]) / 10.0
 		
 		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
@@ -386,13 +399,11 @@ func main() {
       localEthanolInput1 = frame.Data[0]
 
 			if (appSettings.Ecu == "s300") {
-      	localEthanolInput2 = float64(frame.Data[1]) * 2.56 // Duty
-      	localEthanolInput3 = frame.Data[2] // Content
+      	localEthanolInput2S300 = float64(frame.Data[1]) * 2.56 // Duty
+      	localEthanolInput3 = uint16(frame.Data[2]) // Ethanol Content
 			} else if (appSettings.Ecu == "kpro") {
-      	localEthanolInput2 = float64(binary.BigEndian.Uint16(frame.Data[1:2])) // Ethanol Content
-
-        // TODO: EthanolInput3 for KPro requires a 16-bit value, but S300 is 8-bit..
-      	//localEthanolInput3 = binary.BigEndian.Uint16(frame.Data[2:4]) // Fuel Temperature
+      	localEthanolInput2KPro = frame.Data[1] // Ethanol Content
+				localEthanolInput3 = binary.BigEndian.Uint16(data[2:4]) // Fuel Temperature
 			}
 		}
 	}
