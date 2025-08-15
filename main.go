@@ -48,6 +48,9 @@ var (
 	localVoltage				float64
 	localIat						uint16
 	localEct						uint16
+	localMil						uint8
+	localVts						uint8
+	localCl							uint8
 	localTps						uint16
 	localMap						uint16
 	localInj						uint16
@@ -56,8 +59,8 @@ var (
 	localKnockCounter		uint16
 	localTargetCamAngle	float64
 	localActualCamAngle	float64
-	localOilTemp				uint16 // Analog0
-	localOilPressure		uint16 // Analog1
+	localAnalog0				uint16 // Oil Temperature
+	localAnalog1				uint16 // Oil Pressure
 	localAnalog2				uint16
 	localAnalog3				uint16
 	localAnalog4				uint16
@@ -96,8 +99,8 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","TPS","MAP","INJ","IGN","Lambda Ratio","Knock Count","Target Cam Angle","Actual Cam Angle","Oil Temperature","Oil Pressure","Ethanol Input1","Ethanol Input2","Ethanol Input3","Latitude","Longitude","LapCount","CurrentTime","CurrentLapStartTime","CurrentLapTime","BestLapTime","PbLapTime","PreviousLapTime"}
-	csvHeaderTypes := []string{"sec","rpm","km/h","","V","C","C","%","kPa","ms","deg","lambda","count","deg","deg","C","kPa","hz","%","%","deg","deg","","sec","sec","sec","sec","sec","sec"}
+	csvHeaders := []string{"HertzTime","Engine RPM","Speed","Gear","Voltage","IAT","ECT","MIL","VTS","CL","TPS","MAP","INJ","IGN","Lambda Ratio","Knock Count","Target Cam Angle","Actual Cam Angle","Analog0","Analog1","Analog2","Analog3","Analog4","Analog5","Analog6","Analog7","Ethanol Input1","Ethanol Input2","Ethanol Input3","Latitude","Longitude","LapCount","CurrentTime","CurrentLapStartTime","CurrentLapTime","BestLapTime","PbLapTime","PreviousLapTime"}
+	csvHeaderTypes := []string{"sec","rpm","km/h","","V","C","C","","","","%","kPa","ms","deg","lambda","count","deg","deg","","","","","","","","","hz","%","%","deg","deg","","","sec","sec","sec","sec","sec","sec"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -135,6 +138,9 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatFloat(float64(localVoltage), 'f', 1, 64),
 				strconv.FormatUint(uint64(localIat), 10),
 				strconv.FormatUint(uint64(localEct), 10),
+				strconv.FormatUint(uint64(localMil), 10),
+				strconv.FormatUint(uint64(localVts), 10),
+				strconv.FormatUint(uint64(localCl), 10),
 				strconv.FormatUint(uint64(localTps), 10),
 				strconv.FormatUint(uint64(localMap), 10),
 				strconv.FormatUint(uint64(localInj), 10),
@@ -143,8 +149,14 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localKnockCounter), 10),
 				strconv.FormatFloat(float64(localTargetCamAngle), 'f', 2, 64),
 				strconv.FormatFloat(float64(localActualCamAngle), 'f', 2, 64),
-				strconv.FormatUint(uint64(localOilTemp), 10),
-				strconv.FormatUint(uint64(localOilPressure), 10),
+				strconv.FormatUint(uint64(localAnalog0), 10),
+				strconv.FormatUint(uint64(localAnalog1), 10),
+				strconv.FormatUint(uint64(localAnalog2), 10),
+				strconv.FormatUint(uint64(localAnalog3), 10),
+				strconv.FormatUint(uint64(localAnalog4), 10),
+				strconv.FormatUint(uint64(localAnalog5), 10),
+				strconv.FormatUint(uint64(localAnalog6), 10),
+				strconv.FormatUint(uint64(localAnalog7), 10),
 				strconv.FormatUint(uint64(localEthanolInput1), 10),
 
 				// TODO: Make these configurable
@@ -154,6 +166,7 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localEthanolInput2KPro), 10),
 
 				strconv.FormatUint(uint64(localEthanolInput3), 10),
+
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
 				strconv.FormatUint(uint64(localLapCount), 10),
@@ -355,6 +368,11 @@ func main() {
 		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
+			if (appSettings.Ecu == "kpro") {
+				localMil = frame.Data[4]
+				localVts = frame.Data[5]
+				localCl = frame.Data[6]
+			}
 		
 		case 662, 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
@@ -385,15 +403,20 @@ func main() {
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
 			kelvinTemp := 1 / (A + B * math.Log(float64(oilTempResistance)) + C * math.Pow(math.Log(float64(oilTempResistance)), 3))
-			localOilTemp = uint16(kelvinTemp - 273.15)
+			localAnalog0 = uint16(kelvinTemp - 273.15)
 
 			// Oil Pressure
 			oilPressureResistance := float64(binary.BigEndian.Uint16(frame.Data[2:4])) / 819.2
 			kPaValue := ((float64(oilPressureResistance) - originalLow) / (originalHigh - originalLow) * (desiredHigh - desiredLow)) + desiredLow
-			localOilPressure = uint16(math.Round(kPaValue * 0.145038)) // Convert to psi
+			localAnalog1 = uint16(math.Round(kPaValue * 0.145038)) // Convert to psi
+			localAnalog2 = binary.BigEndian.Uint16(frame.Data[4:6])
+			localAnalog3 = binary.BigEndian.Uint16(frame.Data[6:8])
 
-		// TODO: Future
-    // case 668, 1640:
+    case 668, 1640:
+			localAnalog4 = binary.BigEndian.Uint16(frame.Data[0:2])
+			localAnalog5 = binary.BigEndian.Uint16(frame.Data[2:4])
+			localAnalog6 = binary.BigEndian.Uint16(frame.Data[4:6])
+			localAnalog7 = binary.BigEndian.Uint16(frame.Data[6:8])
 
 		case 669, 1641:
       localEthanolInput1 = frame.Data[0]
