@@ -109,7 +109,7 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 	}
 	
   startTime := time.Now()
-	ticker := time.NewTicker(time.Duration(appSettings.LoggingHertz) * time.Millisecond) // Create a ticker based on the hertz provided
+	ticker := time.NewTicker(time.Second / time.Duration(appSettings.LoggingHertz))
   defer ticker.Stop()
 
   /* How the Hertz is calc'd
