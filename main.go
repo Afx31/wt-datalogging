@@ -21,12 +21,12 @@ import (
 
 
 type AppSettings struct {
-	CanChannel		string	`json:"canChannel"`
-	Track					string	`json:"track"`
-  LapTiming			bool		`json:"lapTiming"`
 	LoggingHertz	int			`json:"loggingHertz"`
+	CanChannel		string	`json:"canChannel"`
 	Car						string	`json:"car"`
 	Ecu						string	`json:"ecu"`
+	Track					string	`json:"track"`
+  LapTiming			bool		`json:"lapTiming"`
 }
 
 // --- Local variables to write to, which the datalogging will snapshot later ---
@@ -288,8 +288,8 @@ func handleGpsDatalogging() {
 	gps.Close()
 }
 
-func main() {
-	// -------------------- Read in settings file first --------------------
+func ReadWTSettings() {
+		// -------------------- Read in settings file first --------------------
 	settingsFile, err := os.Open("/home/pi/dev/wt-racedash-settings.json")
 	if err != nil {
 		log.Fatal("Error: Cannot read in settings file")
@@ -300,6 +300,10 @@ func main() {
 	json.Unmarshal(data, &appSettings)
 	currentTrack = tracks.Tracks[appSettings.Track]
 	// ---------------------------------------------------------------------
+}
+
+func main() {
+	ReadWTSettings()
 
 	// --- Misc configure for oil values ---
 	// Oil Temp
