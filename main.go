@@ -426,7 +426,7 @@ func main() {
       	localEthanolInput3 = uint16(frame.Data[2]) // Ethanol Content
 			} else if (appSettings.Ecu == "kpro") {
       	localEthanolInput2KPro = frame.Data[1] // Ethanol Content
-				localEthanolInput3 = binary.BigEndian.Uint16(data[2:4]) // Fuel Temperature
+				localEthanolInput3 = binary.BigEndian.Uint16(frame.Data[2:4]) // Fuel Temperature
 			}
 		}
 	}
