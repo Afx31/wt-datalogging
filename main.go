@@ -290,7 +290,7 @@ func handleGpsDatalogging() {
 
 func ReadWTSettings() {
 		// -------------------- Read in settings file first --------------------
-	settingsFile, err := os.Open("/home/pi/dev/wt-racedash-settings.json")
+	settingsFile, err := os.Open("/home/pi/dev/wt-app-settings.json")
 	if err != nil {
 		log.Fatal("Error: Cannot read in settings file")
 	}
