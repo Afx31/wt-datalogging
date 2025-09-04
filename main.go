@@ -157,14 +157,13 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localAnalog5), 10),
 				strconv.FormatUint(uint64(localAnalog6), 10),
 				strconv.FormatUint(uint64(localAnalog7), 10),
+
 				strconv.FormatUint(uint64(localEthanolInput1), 10),
-
-				// TODO: Make these configurable
-				// S300
-				strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64),
-				// KPro
-				strconv.FormatUint(uint64(localEthanolInput2KPro), 10),
-
+				if (appSettings.Ecu == "s300") {
+					strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64),
+				} else {
+					strconv.FormatUint(uint64(localEthanolInput2KPro), 10),
+				}
 				strconv.FormatUint(uint64(localEthanolInput3), 10),
 
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
