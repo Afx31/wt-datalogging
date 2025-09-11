@@ -19,6 +19,17 @@ import (
 	"go.einride.tech/can/pkg/socketcan"
 )
 
+// --- Data conversion constants ---
+// Oil Temp
+const OILTEMP_A = 0.0014222095
+const OILTEMP_B = 0.00023729017
+const OILTEMP_C = 9.3273998E-8
+
+// Oil Pressure
+const OILPRESSURE_originalLow  float64 = 0    //0.5
+const OILPRESSURE_originalHigh float64 = 5    //4.5
+const OILPRESSURE_desiredLow   float64 = -100 //0
+const OILPRESSURE_desiredHigh  float64 = 1100 //1000
 
 type AppSettings struct {
 	LoggingHertz	int			`json:"loggingHertz"`
@@ -304,17 +315,6 @@ func ReadWTSettings() {
 
 func main() {
 	ReadWTSettings()
-
-	// --- Misc configure for oil values ---
-	// Oil Temp
-	A := 0.0014222095
-	B := 0.00023729017
-	C := 9.3273998E-8
-	// Oil Pressure
-	var originalLow float64 = 0 //0.5
-	var originalHigh float64 = 5 //4.5
-	var desiredLow float64 = -100 //0
-	var desiredHigh float64 = 1100 //1000
 
 	fmt.Println("--- Datalogging initialising... ---")
 
