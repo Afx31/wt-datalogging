@@ -406,12 +406,12 @@ func main() {
 		case 667, 1639:
 			// Oil Temp
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
-			kelvinTemp := 1 / (A + B * math.Log(float64(oilTempResistance)) + C * math.Pow(math.Log(float64(oilTempResistance)), 3))
+			kelvinTemp := 1 / (OILTEMP_A + OILTEMP_B * math.Log(float64(oilTempResistance)) + OILTEMP_C * math.Pow(math.Log(float64(oilTempResistance)), 3))
 			localAnalog0 = uint16(kelvinTemp - 273.15)
 
 			// Oil Pressure
 			oilPressureResistance := float64(binary.BigEndian.Uint16(frame.Data[2:4])) / 819.2
-			kPaValue := ((float64(oilPressureResistance) - originalLow) / (originalHigh - originalLow) * (desiredHigh - desiredLow)) + desiredLow
+			kPaValue := ((float64(oilPressureResistance) - OILPRESSURE_originalLow) / (OILPRESSURE_originalHigh - OILPRESSURE_originalLow) * (OILPRESSURE_desiredHigh - OILPRESSURE_desiredLow)) + OILPRESSURE_desiredLow
 			localAnalog1 = uint16(math.Round(kPaValue * 0.145038)) // Convert to psi
 			localAnalog2 = binary.BigEndian.Uint16(frame.Data[4:6])
 			localAnalog3 = binary.BigEndian.Uint16(frame.Data[6:8])
