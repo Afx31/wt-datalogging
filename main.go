@@ -14,11 +14,14 @@ import (
 	"strconv"
 	"time"
 	"wt-datalogging/internal/tracks"
+	"path/filepath"
 
 	"github.com/stratoberry/go-gpsd"
 	"go.einride.tech/can/pkg/socketcan"
 )
 
+// --- MISC ---
+const SETTINGSFILEPATH = "wt-app-settings.json"
 // --- Data conversion constants ---
 // Oil Temp
 const OILTEMP_A = 0.0014222095
@@ -299,40 +302,59 @@ func handleGpsDatalogging() {
 	gps.Close()
 }
 
-func ReadWTSettings() {
-		// -------------------- Read in settings file first --------------------
-	settingsFile, err := os.Open("/home/pi/dev/wt-app-settings.json")
+func ReadWTSettingsFile() {
+	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal("Error: Cannot read in settings file")
+		log.Fatal("[FATAL] Cannot get CWD : ", err)
+	}
+	devRoot := filepath.Dir(cwd) // Go up 1 level
+
+	settingsFile, err := os.Open(filepath.Join(devRoot, SETTINGSFILEPATH))
+	if err != nil {
+		log.Fatal("[FATAL] Cannot read in settings file : ", err)
 	}
 	defer settingsFile.Close()
 
 	data, _ := io.ReadAll(settingsFile)
 	json.Unmarshal(data, &appSettings)
 	currentTrack = tracks.Tracks[appSettings.Track]
-	// ---------------------------------------------------------------------
 }
 
 func main() {
-	ReadWTSettings()
-
 	fmt.Println("--- Datalogging initialising... ---")
+	ReadWTSettingsFile()	
 
 	// -------------------- Create CSV file and write headers to it --------------------
 	// Count how many datalogs current exist, and increment the count for the new one
-	dir := "/home/pi/dev/data"
-	root := os.DirFS(dir)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal("[FATAL] Cannot get CWD : ", err)
+	}
+
+	// Go up 1 level
+	devRoot := filepath.Dir(cwd)
+	// Path to "data" folder
+	dataPath := filepath.Join(devRoot, "data")
+
+	err = os.MkdirAll(dataPath, 0755)
+	if err != nil {
+		log.Fatal("[FATAL] Cannot create data directory : ", err)
+	}
+
+	// Wrap as FS
+	root := os.DirFS(dataPath)
+	// Find CSV files
 	mdFiles, err := fs.Glob(root, "*.csv")
-	
 	counter := 1;
 	for range mdFiles {
 		counter++;
 	}
 
 	// Now do the file creation
-	file, err := os.Create("/home/pi/dev/data/datalog" + strconv.Itoa(counter) + ".csv")
+	fullPath := filepath.Join(dataPath, "datalog" + strconv.Itoa(counter) + ".csv")
+	file, err := os.Create(fullPath)
 	if err != nil {
-		log.Fatalf("Error creating file: %v", err)
+		log.Fatalf("[FATAL] Issue creating file : %v", err)
 	}
 	defer file.Close()
 
