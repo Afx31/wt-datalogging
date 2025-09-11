@@ -130,6 +130,13 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 			formattedLocalTime := localTime.Format("15:04:05 02-01-2006")
 			formattedLapStartTime := localLapStartTime.Format("15:04:05 02-01-2006")
 			
+			var ethanolInput2 string
+			if (appSettings.Ecu == "s300") {
+				ethanolInput2 = strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64)
+			} else {
+				ethanolInput2 = strconv.FormatUint(uint64(localEthanolInput2KPro), 10)
+			}
+			
 			csvFrame := []string {
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
@@ -157,15 +164,9 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localAnalog5), 10),
 				strconv.FormatUint(uint64(localAnalog6), 10),
 				strconv.FormatUint(uint64(localAnalog7), 10),
-
 				strconv.FormatUint(uint64(localEthanolInput1), 10),
-				if (appSettings.Ecu == "s300") {
-					strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64),
-				} else {
-					strconv.FormatUint(uint64(localEthanolInput2KPro), 10),
-				}
+				ethanolInput2,
 				strconv.FormatUint(uint64(localEthanolInput3), 10),
-
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
 				strconv.FormatUint(uint64(localLapCount), 10),
