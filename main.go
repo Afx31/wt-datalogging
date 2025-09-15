@@ -53,10 +53,18 @@ type LapStats struct {
 	PreviousLapTime uint32
 }
 
+type LapTiming struct {
+	SessionTimeMs     uint32   // absolute session time in ms, safe up to 49 days
+	LapIndex          uint16   // lap counter, safe up to 65k laps
+	LapStartTimeMs    uint32   // absolute session time at last lap start
+	SectorStartTimeMs []uint32 // absolute session time when each sector is started
+	Flags             uint8    // metadata (pits, invalid lap, yellow flag, etc)
+}
+
 var (
 	appSettings  *AppSettings
 	currentTrack tracks.Track
-	
+
 	localRpm               uint16
 	localSpeed             uint16
 	localGear              uint8
@@ -87,15 +95,13 @@ var (
 	localEthanolInput2KPro uint8
 	localEthanolInput3     uint16
 
-	localLat             float64
-	localLon             float64
-	localTime            time.Time
-	localLapStartTime    time.Time
-	localCurrentLapTime  uint32
-	localLapCount        uint8
-	localBestLapTime     uint32
-	localPbLapTime       uint32
-	localPreviousLapTime uint32
+	localLat               float64
+	localLon               float64
+	localSessionTimeMs     uint32
+	localLapIndex          uint16
+	localLapStartTimsMs    uint32
+	localSectorStartTimeMs []uint32
+	localFlags             uint8
 
 	lapStats = LapStats{Type: 3, LapCount: 1}
 )
@@ -114,8 +120,8 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"HertzTime", "Engine RPM", "Speed", "Gear", "Voltage", "IAT", "ECT", "MIL", "VTS", "CL", "TPS", "MAP", "INJ", "IGN", "Lambda Ratio", "Knock Count", "Target Cam Angle", "Actual Cam Angle", "Analog0", "Analog1", "Analog2", "Analog3", "Analog4", "Analog5", "Analog6", "Analog7", "Ethanol Input1", "Ethanol Input2", "Ethanol Input3", "Latitude", "Longitude", "LapCount", "CurrentTime", "CurrentLapStartTime", "CurrentLapTime", "BestLapTime", "PbLapTime", "PreviousLapTime"}
-	csvHeaderTypes := []string{"sec", "rpm", "km/h", "", "V", "C", "C", "", "", "", "%", "kPa", "ms", "deg", "lambda", "count", "deg", "deg", "", "", "", "", "", "", "", "", "hz", "%", "%", "deg", "deg", "", "", "sec", "sec", "sec", "sec", "sec", "sec"}
+	csvHeaders := []string{"HertzTime", "Engine RPM", "Speed", "Gear", "Voltage", "IAT", "ECT", "MIL", "VTS", "CL", "TPS", "MAP", "INJ", "IGN", "Lambda Ratio", "Knock Count", "Target Cam Angle", "Actual Cam Angle", "Analog0", "Analog1", "Analog2", "Analog3", "Analog4", "Analog5", "Analog6", "Analog7", "Ethanol Input1", "Ethanol Input2", "Ethanol Input3", "Latitude", "Longitude", "SessionTimeMs", "LapIndex", "LapStartTimeMs", "SectorStartTimeMs1", "SectorStartTimeMs2", "SectorStartTimeMs3", "Flags"}
+	csvHeaderTypes := []string{"sec", "rpm", "km/h", "", "V", "C", "C", "", "", "", "%", "kPa", "ms", "deg", "lambda", "count", "deg", "deg", "", "", "", "", "", "", "", "", "hz", "%", "%", "deg", "deg", "ms", "int", "ms", "ms", "ms", "ms", "int"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -184,15 +190,15 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localEthanolInput3), 10),
 				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
 				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
-				strconv.FormatUint(uint64(localLapCount), 10),
-				formattedLocalTime,
-				formattedLapStartTime,
-				strconv.FormatUint(uint64(localCurrentLapTime), 10),
-				strconv.FormatUint(uint64(localBestLapTime), 10),
-				strconv.FormatUint(uint64(localPbLapTime), 10),
-				strconv.FormatUint(uint64(localPreviousLapTime), 10),
+				strconv.FormatUint(uint64(localSessionTimeMs), 10),
+				strconv.FormatUint(uint64(localLapIndex), 10),
+				strconv.FormatUint(uint64(localLapStartTimsMs), 10),
+				strconv.FormatUint(uint64(localSectorStartTimeMs[0]), 10),
+				strconv.FormatUint(uint64(localSectorStartTimeMs[1]), 10),
+				strconv.FormatUint(uint64(localSectorStartTimeMs[2]), 10),
+				strconv.FormatUint(uint64(localFlags), 10),
 			}
-			
+
 			if err := w.Write(csvFrame); err != nil {
 				log.Fatalln("Error writing data to CSV", err)
 			}
@@ -248,9 +254,16 @@ func handleGpsDatalogging() {
 		break
 	}
 	defer gps.Close()
-	
+
 	currentLapData := CurrentLapData{Type: 2}
-  currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
+	currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
+
+
+	// NEW - TODO
+	// 1. start sessionTimeMs increment
+	// 2. GPS starts running, looping the current position to finish line
+	// 3. Once line is crossed, lapStartTimeMS = sessionTimeMs | lapIndex++
+	// 4. Repeat
 
 	// Define a reporting filter
 	tpvFilter := func(r interface{}) {
