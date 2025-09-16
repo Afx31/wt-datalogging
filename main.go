@@ -56,6 +56,7 @@ type LapStats struct {
 type GpsData struct {
 	PreviousLat float64
 	PreviousLon float64
+	TypeTrigger bool
 }
 type LapTiming struct {
 	SessionTimeMs     uint32   // absolute session time in ms, safe up to 49 days
@@ -134,36 +135,33 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 	if err := w.Write(csvHeaderTypes); err != nil {
 		log.Fatalln("Error writing header types to CSV")
 	}
-	
-  startTime := time.Now()
-	ticker := time.NewTicker(time.Second / time.Duration(appSettings.LoggingHertz))
-  defer ticker.Stop()
 
-  /* How the Hertz is calc'd
-   * - The NEW way takes the `startTime` and compares it against the `currentTime` each tick
-   * - Then work out the seconds and fraction of the `elapsedTime`
-   * - Then format as desired ("00.0, 00.1, 00.2")
-   */
+	startTime := time.Now()
+	ticker := time.NewTicker(time.Second / time.Duration(appSettings.LoggingHertz))
+	defer ticker.Stop()
+
+	/* How the Hertz is calc'd
+	 * - The NEW way takes the `startTime` and compares it against the `currentTime` each tick
+	 * - Then work out the seconds and fraction of the `elapsedTime`
+	 * - Then format as desired ("00.0, 00.1, 00.2")
+	 */
 	for {
 		select {
-    case <-ticker.C:
-      // Hertz calculation
-      currentTime := time.Now()
-      elapsed := currentTime.Sub(startTime).Milliseconds()
-      seconds := elapsed / 1000
-      fraction := (elapsed % 1000) / 100
-      time := fmt.Sprintf("%02d.%01d", seconds, fraction)
+		case <-ticker.C:
+			// Hertz calculation
+			currentTime := time.Now()
+			elapsed := currentTime.Sub(startTime).Milliseconds()
+			seconds := elapsed / 1000
+			fraction := (elapsed % 1000) / 100
+			time := fmt.Sprintf("%02d.%01d", seconds, fraction)
 
-			formattedLocalTime := localTime.Format("15:04:05 02-01-2006")
-			formattedLapStartTime := localLapStartTime.Format("15:04:05 02-01-2006")
-			
 			var ethanolInput2 string
 			if appSettings.Ecu == "s300" {
 				ethanolInput2 = strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64)
 			} else {
 				ethanolInput2 = strconv.FormatUint(uint64(localEthanolInput2KPro), 10)
 			}
-			
+
 			csvFrame := []string{
 				time,
 				strconv.FormatUint(uint64(localRpm), 10),
@@ -218,7 +216,7 @@ func isThisTheFinishLine(x3 float64, y3 float64, x4 float64, y4 float64) bool {
 	x2 := currentTrack.LatMax
 	y2 := currentTrack.LonMax
 
-	// ** We calculate the intersection point on both the finish line AND movement line                
+	// ** We calculate the intersection point on both the finish line AND movement line
 	// - FinishLine = line across the track (min to max points)
 	// - MovementPath = previous location to current location
 
@@ -332,48 +330,48 @@ func handleGpsDatalogging() {
 	// Define a reporting filter
 	tpvFilter := func(r interface{}) {
 		report := r.(*gpsd.TPVReport)
-    
-    // ----- Convert report.Time from UTC to Australia/Sydney -----
-    location, err := time.LoadLocation("Australia/Sydney")
-    if err != nil {
-      fmt.Println("Error loading location:", err)
-      return
-    }
-    convertedCurrentTime := report.Time.In(location)
 
-    // ---------- GPS/Lap Timing ----------
-    timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
-    currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
+		// ----- Convert report.Time from UTC to Australia/Sydney -----
+		location, err := time.LoadLocation("Australia/Sydney")
+		if err != nil {
+			fmt.Println("Error loading location:", err)
+			return
+		}
+		convertedCurrentTime := report.Time.In(location)
+
+		// ---------- GPS/Lap Timing ----------
+		timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
+		currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
 
 		if isThisTheFinishLine(currentLapData.PreviousLat, currentLapData.PreviousLon, report.Lat, report.Lon) {
 			// Do lap stats
 			if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
-        lapStats.BestLapTime = currentLapData.CurrentLapTime
-      }
-      if currentLapData.CurrentLapTime < lapStats.PbLapTime || lapStats.PbLapTime == 0 {
-        lapStats.PbLapTime = currentLapData.CurrentLapTime
-      }
-      lapStats.PreviousLapTime = currentLapData.CurrentLapTime
-      
-      // Start the next lap
-      currentLapData.LapStartTime = convertedCurrentTime
+				lapStats.BestLapTime = currentLapData.CurrentLapTime
+			}
+			if currentLapData.CurrentLapTime < lapStats.PbLapTime || lapStats.PbLapTime == 0 {
+				lapStats.PbLapTime = currentLapData.CurrentLapTime
+			}
+			lapStats.PreviousLapTime = currentLapData.CurrentLapTime
+
+			// Start the next lap
+			currentLapData.LapStartTime = convertedCurrentTime
 			lapStats.LapCount++
 
-	    // --- Update local values for the datalog ---
-			localLapCount = lapStats.LapCount
-			localBestLapTime = lapStats.BestLapTime
-			localPbLapTime = lapStats.PbLapTime
-			localPreviousLapTime = lapStats.PreviousLapTime
-    }
+			// --- Update local values for the datalog ---
+			// localLapCount = lapStats.LapCount
+			// localBestLapTime = lapStats.BestLapTime
+			// localPbLapTime = lapStats.PbLapTime
+			// localPreviousLapTime = lapStats.PreviousLapTime
+		}
 
 		// --- Update local values for the datalog ---
-		localLat = report.Lat
-		localLon = report.Lon
-		localTime = convertedCurrentTime
-		localLapStartTime = currentLapData.LapStartTime
-		localCurrentLapTime = currentLapData.CurrentLapTime
+		// localLat = report.Lat
+		// localLon = report.Lon
+		// localTime = convertedCurrentTime
+		// localLapStartTime = currentLapData.LapStartTime
+		// localCurrentLapTime = currentLapData.CurrentLapTime
 	}
-  
+
 	gps.AddFilter("TPV", tpvFilter)
 	done := gps.Watch()
 	<-done
@@ -400,7 +398,7 @@ func ReadWTSettingsFile() {
 
 func main() {
 	fmt.Println("--- Datalogging initialising... ---")
-	ReadWTSettingsFile()	
+	ReadWTSettingsFile()
 
 	// -------------------- Create CSV file and write headers to it --------------------
 	// Count how many datalogs current exist, and increment the count for the new one
@@ -456,7 +454,7 @@ func main() {
 
 	for recv.Receive() {
 		frame := recv.Frame()
-		
+
 		// Button input from user to stop the datalogging
 		if frame.ID == uint32(104) {
 			return
@@ -470,7 +468,7 @@ func main() {
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
 			localVoltage = float64(frame.Data[5]) / 10.0
-		
+
 		case 661, 1633:
 			localIat = binary.BigEndian.Uint16(frame.Data[0:2])
 			localEct = binary.BigEndian.Uint16(frame.Data[2:4])
@@ -479,31 +477,33 @@ func main() {
 				localVts = frame.Data[5]
 				localCl = frame.Data[6]
 			}
-		
+
 		case 662, 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
-			if localTps == 65535 { localTps = 0	}
+			if localTps == 65535 {
+				localTps = 0
+			}
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
-		
+
 		case 663, 1635:
 			localInj = binary.BigEndian.Uint16(frame.Data[0:2]) / 1000
 			localIgn = binary.BigEndian.Uint16(frame.Data[2:4])
 
 		case 664, 1636:
-			localLambdaRatio = math.Round(float64(32768.0) / float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
-		
-		// K-Pro only
-    case 665, 1637:
-			if appSettings.Ecu == "kpro" {
-        localKnockCounter = binary.BigEndian.Uint16(frame.Data[0:2])
-      }
+			localLambdaRatio = math.Round(float64(32768.0)/float64(binary.BigEndian.Uint16(frame.Data[0:2]))*100) / 100
 
-    // K-Pro only
-    case 666, 1638:
+		// K-Pro only
+		case 665, 1637:
 			if appSettings.Ecu == "kpro" {
-        localTargetCamAngle = float64(binary.BigEndian.Uint16(frame.Data[0:2]))
-        localActualCamAngle = float64(binary.BigEndian.Uint16(frame.Data[2:4]))
-      }
+				localKnockCounter = binary.BigEndian.Uint16(frame.Data[0:2])
+			}
+
+		// K-Pro only
+		case 666, 1638:
+			if appSettings.Ecu == "kpro" {
+				localTargetCamAngle = float64(binary.BigEndian.Uint16(frame.Data[0:2]))
+				localActualCamAngle = float64(binary.BigEndian.Uint16(frame.Data[2:4]))
+			}
 
 		case 667, 1639:
 			// Oil Temp
@@ -518,17 +518,17 @@ func main() {
 			localAnalog2 = binary.BigEndian.Uint16(frame.Data[4:6])
 			localAnalog3 = binary.BigEndian.Uint16(frame.Data[6:8])
 
-    case 668, 1640:
+		case 668, 1640:
 			localAnalog4 = binary.BigEndian.Uint16(frame.Data[0:2])
 			localAnalog5 = binary.BigEndian.Uint16(frame.Data[2:4])
 			localAnalog6 = binary.BigEndian.Uint16(frame.Data[4:6])
 			localAnalog7 = binary.BigEndian.Uint16(frame.Data[6:8])
 
 		case 669, 1641:
-      localEthanolInput1 = frame.Data[0]
+			localEthanolInput1 = frame.Data[0]
 
 			if appSettings.Ecu == "s300" {
-      	localEthanolInput2S300 = float64(frame.Data[1]) * 2.56 // Duty
+				localEthanolInput2S300 = float64(frame.Data[1]) * 2.56 // Duty
 				localEthanolInput3 = uint16(frame.Data[2])             // Ethanol Content
 			} else if appSettings.Ecu == "kpro" {
 				localEthanolInput2KPro = frame.Data[1]                        // Ethanol Content
