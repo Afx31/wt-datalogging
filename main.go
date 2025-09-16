@@ -145,67 +145,64 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 	 * - Then work out the seconds and fraction of the `elapsedTime`
 	 * - Then format as desired ("00.0, 00.1, 00.2")
 	 */
-	for {
-		select {
-		case <-ticker.C:
-			// Hertz calculation
-			currentTime := time.Now()
-			elapsed := currentTime.Sub(startTime).Milliseconds()
-			seconds := elapsed / 1000
-			fraction := (elapsed % 1000) / 100
-			time := fmt.Sprintf("%02d.%01d", seconds, fraction)
+	for range ticker.C {
+		// Hertz calculation
+		currentTime := time.Now()
+		elapsed := currentTime.Sub(startTime).Milliseconds()
+		seconds := elapsed / 1000
+		fraction := (elapsed % 1000) / 100
+		time := fmt.Sprintf("%02d.%01d", seconds, fraction)
 
-			var ethanolInput2 string
-			if appSettings.Ecu == "s300" {
-				ethanolInput2 = strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64)
-			} else {
-				ethanolInput2 = strconv.FormatUint(uint64(localEthanolInput2KPro), 10)
-			}
+		var ethanolInput2 string
+		if appSettings.Ecu == "s300" {
+			ethanolInput2 = strconv.FormatFloat(float64(localEthanolInput2S300), 'f', 2, 64)
+		} else {
+			ethanolInput2 = strconv.FormatUint(uint64(localEthanolInput2KPro), 10)
+		}
 
-			csvFrame := []string{
-				time,
-				strconv.FormatUint(uint64(localRpm), 10),
-				strconv.FormatUint(uint64(localSpeed), 10),
-				strconv.FormatUint(uint64(localGear), 10),
-				strconv.FormatFloat(float64(localVoltage), 'f', 1, 64),
-				strconv.FormatUint(uint64(localIat), 10),
-				strconv.FormatUint(uint64(localEct), 10),
-				strconv.FormatUint(uint64(localMil), 10),
-				strconv.FormatUint(uint64(localVts), 10),
-				strconv.FormatUint(uint64(localCl), 10),
-				strconv.FormatUint(uint64(localTps), 10),
-				strconv.FormatUint(uint64(localMap), 10),
-				strconv.FormatUint(uint64(localInj), 10),
-				strconv.FormatUint(uint64(localIgn), 10),
-				strconv.FormatFloat(float64(localLambdaRatio), 'f', 2, 64),
-				strconv.FormatUint(uint64(localKnockCounter), 10),
-				strconv.FormatFloat(float64(localTargetCamAngle), 'f', 2, 64),
-				strconv.FormatFloat(float64(localActualCamAngle), 'f', 2, 64),
-				strconv.FormatUint(uint64(localAnalog0), 10),
-				strconv.FormatUint(uint64(localAnalog1), 10),
-				strconv.FormatUint(uint64(localAnalog2), 10),
-				strconv.FormatUint(uint64(localAnalog3), 10),
-				strconv.FormatUint(uint64(localAnalog4), 10),
-				strconv.FormatUint(uint64(localAnalog5), 10),
-				strconv.FormatUint(uint64(localAnalog6), 10),
-				strconv.FormatUint(uint64(localAnalog7), 10),
-				strconv.FormatUint(uint64(localEthanolInput1), 10),
-				ethanolInput2,
-				strconv.FormatUint(uint64(localEthanolInput3), 10),
-				strconv.FormatFloat(float64(localLat), 'f', 10, 64),
-				strconv.FormatFloat(float64(localLon), 'f', 10, 64),
-				strconv.FormatUint(uint64(localSessionTimeMs), 10),
-				strconv.FormatUint(uint64(localLapIndex), 10),
-				strconv.FormatUint(uint64(localLapStartTimsMs), 10),
-				// strconv.FormatUint(uint64(localSectorStartTimeMs[0]), 10),
-				// strconv.FormatUint(uint64(localSectorStartTimeMs[1]), 10),
-				// strconv.FormatUint(uint64(localSectorStartTimeMs[2]), 10),
-				// strconv.FormatUint(uint64(localFlags), 10),
-			}
+		csvFrame := []string{
+			time,
+			strconv.FormatUint(uint64(localRpm), 10),
+			strconv.FormatUint(uint64(localSpeed), 10),
+			strconv.FormatUint(uint64(localGear), 10),
+			strconv.FormatFloat(float64(localVoltage), 'f', 1, 64),
+			strconv.FormatUint(uint64(localIat), 10),
+			strconv.FormatUint(uint64(localEct), 10),
+			strconv.FormatUint(uint64(localMil), 10),
+			strconv.FormatUint(uint64(localVts), 10),
+			strconv.FormatUint(uint64(localCl), 10),
+			strconv.FormatUint(uint64(localTps), 10),
+			strconv.FormatUint(uint64(localMap), 10),
+			strconv.FormatUint(uint64(localInj), 10),
+			strconv.FormatUint(uint64(localIgn), 10),
+			strconv.FormatFloat(float64(localLambdaRatio), 'f', 2, 64),
+			strconv.FormatUint(uint64(localKnockCounter), 10),
+			strconv.FormatFloat(float64(localTargetCamAngle), 'f', 2, 64),
+			strconv.FormatFloat(float64(localActualCamAngle), 'f', 2, 64),
+			strconv.FormatUint(uint64(localAnalog0), 10),
+			strconv.FormatUint(uint64(localAnalog1), 10),
+			strconv.FormatUint(uint64(localAnalog2), 10),
+			strconv.FormatUint(uint64(localAnalog3), 10),
+			strconv.FormatUint(uint64(localAnalog4), 10),
+			strconv.FormatUint(uint64(localAnalog5), 10),
+			strconv.FormatUint(uint64(localAnalog6), 10),
+			strconv.FormatUint(uint64(localAnalog7), 10),
+			strconv.FormatUint(uint64(localEthanolInput1), 10),
+			ethanolInput2,
+			strconv.FormatUint(uint64(localEthanolInput3), 10),
+			strconv.FormatFloat(float64(localLat), 'f', 10, 64),
+			strconv.FormatFloat(float64(localLon), 'f', 10, 64),
+			strconv.FormatUint(uint64(localSessionTimeMs), 10),
+			strconv.FormatUint(uint64(localLapIndex), 10),
+			strconv.FormatUint(uint64(localLapStartTimsMs), 10),
+			// strconv.FormatUint(uint64(localSectorStartTimeMs[0]), 10),
+			// strconv.FormatUint(uint64(localSectorStartTimeMs[1]), 10),
+			// strconv.FormatUint(uint64(localSectorStartTimeMs[2]), 10),
+			// strconv.FormatUint(uint64(localFlags), 10),
+		}
 
-			if err := w.Write(csvFrame); err != nil {
-				log.Fatalln("Error writing data to CSV", err)
-			}
+		if err := w.Write(csvFrame); err != nil {
+			log.Fatalln("Error writing data to CSV", err)
 		}
 	}
 }
