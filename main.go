@@ -44,26 +44,18 @@ type AppSettings struct {
 	LapTiming    bool   `json:"lapTiming"`
 }
 
-// --- Local variables to write to, which the datalogging will snapshot later ---
-type LapStats struct {
-	Type            int8
-	LapCount        uint8
-	BestLapTime     uint32
-	PbLapTime       uint32
-	PreviousLapTime uint32
-}
-
 type GpsData struct {
 	PreviousLat float64
 	PreviousLon float64
 	TypeTrigger bool
 }
+
 type LapTiming struct {
 	SessionTimeMs     uint32   // absolute session time in ms, safe up to 49 days
 	LapIndex          uint16   // lap counter, safe up to 65k laps
 	LapStartTimeMs    uint32   // absolute session time at last lap start
-	SectorStartTimeMs []uint32 // absolute session time when each sector is started
-	Flags             uint8    // metadata (pits, invalid lap, yellow flag, etc)
+	// SectorStartTimeMs []uint32 // absolute session time when each sector is started
+	// Flags             uint8    // metadata (pits, invalid lap, yellow flag, etc)
 }
 
 var (
@@ -105,21 +97,12 @@ var (
 	localSessionTimeMs     uint32
 	localLapIndex          uint16
 	localLapStartTimsMs    uint32
-	localSectorStartTimeMs []uint32
-	localFlags             uint8
+	// localSectorStartTimeMs []uint32
+	// localFlags             uint8
 
-	lapStats = LapStats{Type: 3, LapCount: 1}
 	gpsData = GpsData{}
 	lapTiming = LapTiming{ LapIndex: 0, Flags: 0}
 )
-
-type CurrentLapData struct {
-	Type           int8
-	LapStartTime   time.Time
-	CurrentLapTime uint32
-	PreviousLat    float64
-	PreviousLon    float64
-}
 
 func DataLoggingAtSpecificHertz(w *csv.Writer) {
 	startTimeStamp := []string{time.Now().Format("02-01-2006 - 15:04:05"), appSettings.Track, appSettings.Car, appSettings.Ecu}
@@ -127,8 +110,8 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 		log.Fatalln("Error writing datalogging start timestamp CSV")
 	}
 
-	csvHeaders := []string{"HertzTime", "Engine RPM", "Speed", "Gear", "Voltage", "IAT", "ECT", "MIL", "VTS", "CL", "TPS", "MAP", "INJ", "IGN", "Lambda Ratio", "Knock Count", "Target Cam Angle", "Actual Cam Angle", "Analog0", "Analog1", "Analog2", "Analog3", "Analog4", "Analog5", "Analog6", "Analog7", "Ethanol Input1", "Ethanol Input2", "Ethanol Input3", "Latitude", "Longitude", "SessionTimeMs", "LapIndex", "LapStartTimeMs", "SectorStartTimeMs1", "SectorStartTimeMs2", "SectorStartTimeMs3", "Flags"}
-	csvHeaderTypes := []string{"sec", "rpm", "km/h", "", "V", "C", "C", "", "", "", "%", "kPa", "ms", "deg", "lambda", "count", "deg", "deg", "", "", "", "", "", "", "", "", "hz", "%", "%", "deg", "deg", "ms", "int", "ms", "ms", "ms", "ms", "int"}
+	csvHeaders := []string{"HertzTime", "Engine RPM", "Speed", "Gear", "Voltage", "IAT", "ECT", "MIL", "VTS", "CL", "TPS", "MAP", "INJ", "IGN", "Lambda Ratio", "Knock Count", "Target Cam Angle", "Actual Cam Angle", "Analog0", "Analog1", "Analog2", "Analog3", "Analog4", "Analog5", "Analog6", "Analog7", "Ethanol Input1", "Ethanol Input2", "Ethanol Input3", "Latitude", "Longitude", "SessionTimeMs", "LapIndex", "LapStartTimeMs"} //, "SectorStartTimeMs1", "SectorStartTimeMs2", "SectorStartTimeMs3", "Flags"}
+	csvHeaderTypes := []string{"sec", "rpm", "km/h", "", "V", "C", "C", "", "", "", "%", "kPa", "ms", "deg", "lambda", "count", "deg", "deg", "", "", "", "", "", "", "", "", "hz", "%", "%", "deg", "deg", "ms", "int", "ms"} //, "ms", "ms", "ms", "int"}
 	if err := w.Write(csvHeaders); err != nil {
 		log.Fatalln("Error writing headers to CSV")
 	}
@@ -287,6 +270,8 @@ func handleLapTiming() {
 
 		// gpsData.PreviousLat = report.Lat
 		// gpsData.PreviousLon = report.Lon
+		// localLat = report.Lat
+		// localLon = report.Lon
 	}
 
 	// gps.AddFilter("TPV", tpvFilter)
@@ -314,15 +299,7 @@ func handleGpsDatalogging() {
 	}
 	defer gps.Close()
 
-	currentLapData := CurrentLapData{Type: 2}
-	currentLapData.LapStartTime = time.Now().Round(100 * time.Millisecond)
-
-
-	// NEW - TODO
-	// 1. start sessionTimeMs increment
-	// 2. GPS starts running, looping the current position to finish line
-	// 3. Once line is crossed, lapStartTimeMS = sessionTimeMs | lapIndex++
-	// 4. Repeat
+	sessionStart := time.Now().Round(100 * time.Millisecond)
 
 	// Define a reporting filter
 	tpvFilter := func(r interface{}) {
@@ -337,36 +314,22 @@ func handleGpsDatalogging() {
 		convertedCurrentTime := report.Time.In(location)
 
 		// ---------- GPS/Lap Timing ----------
-		timeDiff := convertedCurrentTime.Sub(currentLapData.LapStartTime)
-		currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
+		timeDiff := convertedCurrentTime.Sub(sessionStart)
+		// currentLapData.CurrentLapTime = uint32(timeDiff.Milliseconds())
+		lapTiming.SessionTimeMs = uint32(timeDiff.Milliseconds())
+		
 
-		if isThisTheFinishLine(currentLapData.PreviousLat, currentLapData.PreviousLon, report.Lat, report.Lon) {
-			// Do lap stats
-			if currentLapData.CurrentLapTime < lapStats.BestLapTime || lapStats.BestLapTime == 0 {
-				lapStats.BestLapTime = currentLapData.CurrentLapTime
-			}
-			if currentLapData.CurrentLapTime < lapStats.PbLapTime || lapStats.PbLapTime == 0 {
-				lapStats.PbLapTime = currentLapData.CurrentLapTime
-			}
-			lapStats.PreviousLapTime = currentLapData.CurrentLapTime
-
-			// Start the next lap
-			currentLapData.LapStartTime = convertedCurrentTime
-			lapStats.LapCount++
-
-			// --- Update local values for the datalog ---
-			// localLapCount = lapStats.LapCount
-			// localBestLapTime = lapStats.BestLapTime
-			// localPbLapTime = lapStats.PbLapTime
-			// localPreviousLapTime = lapStats.PreviousLapTime
+		if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
+			lapTiming.LapStartTimeMs = lapTiming.SessionTimeMs
+			lapTiming.LapIndex++
+			localLapStartTimsMs = lapTiming.LapStartTimeMs
+			localLapIndex = lapTiming.LapIndex
 		}
 
-		// --- Update local values for the datalog ---
-		// localLat = report.Lat
-		// localLon = report.Lon
-		// localTime = convertedCurrentTime
-		// localLapStartTime = currentLapData.LapStartTime
-		// localCurrentLapTime = currentLapData.CurrentLapTime
+		gpsData.PreviousLat = report.Lat
+		gpsData.PreviousLon = report.Lon
+		localLat = report.Lat
+		localLon = report.Lon
 	}
 
 	gps.AddFilter("TPV", tpvFilter)
