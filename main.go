@@ -53,6 +53,10 @@ type LapStats struct {
 	PreviousLapTime uint32
 }
 
+type GpsData struct {
+	PreviousLat float64
+	PreviousLon float64
+}
 type LapTiming struct {
 	SessionTimeMs     uint32   // absolute session time in ms, safe up to 49 days
 	LapIndex          uint16   // lap counter, safe up to 65k laps
@@ -104,6 +108,8 @@ var (
 	localFlags             uint8
 
 	lapStats = LapStats{Type: 3, LapCount: 1}
+	gpsData = GpsData{}
+	lapTiming = LapTiming{ LapIndex: 0, Flags: 0}
 )
 
 type CurrentLapData struct {
@@ -193,10 +199,10 @@ func DataLoggingAtSpecificHertz(w *csv.Writer) {
 				strconv.FormatUint(uint64(localSessionTimeMs), 10),
 				strconv.FormatUint(uint64(localLapIndex), 10),
 				strconv.FormatUint(uint64(localLapStartTimsMs), 10),
-				strconv.FormatUint(uint64(localSectorStartTimeMs[0]), 10),
-				strconv.FormatUint(uint64(localSectorStartTimeMs[1]), 10),
-				strconv.FormatUint(uint64(localSectorStartTimeMs[2]), 10),
-				strconv.FormatUint(uint64(localFlags), 10),
+				// strconv.FormatUint(uint64(localSectorStartTimeMs[0]), 10),
+				// strconv.FormatUint(uint64(localSectorStartTimeMs[1]), 10),
+				// strconv.FormatUint(uint64(localSectorStartTimeMs[2]), 10),
+				// strconv.FormatUint(uint64(localFlags), 10),
 			}
 
 			if err := w.Write(csvFrame); err != nil {
@@ -234,6 +240,64 @@ func isThisTheFinishLine(x3 float64, y3 float64, x4 float64, y4 float64) bool {
 
 	// Check if the intersection happens on both segments
 	return (t >= 0 && t <= 1) && (u >= 0 && u <= 1)
+}
+
+func handleLapTiming() {
+	// Connect to GPS server....
+	// var gps *gpsd.Session
+	// var err error
+
+	// // Connect to the GPSD server
+	// for {
+	// 	gps, err = gpsd.Dial("localhost:2947")
+	// 	if err != nil {
+	// 		fmt.Println("Failed to connect to GPSD: ", err)
+	// 		fmt.Println("Retrying in 10 seconds...")
+	// 		time.Sleep(10 * time.Second)
+	// 		continue
+	// 	}
+
+	// 	fmt.Println("Connected to GPSD")
+	// 	break
+	// }
+	// defer gps.Close()
+	
+	
+	// Start session timer
+	sessionStart := time.Now()
+	go func() {
+		for {
+			currentSessionTime := uint32(time.Since(sessionStart).Milliseconds())
+			lapTiming.SessionTimeMs = currentSessionTime
+			localSessionTimeMs = currentSessionTime
+		}
+	}()
+
+
+	// tpvFilter := func(r interface{}) {
+	// 	report := r.(*gpsd.TPVReport)
+	for {
+		currentTimeMs := lapTiming.SessionTimeMs //- lapTiming.LapStartTimeMs
+		fmt.Println("Current: ", currentTimeMs)
+
+		//if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
+		if gpsData.TypeTrigger {
+			lapTiming.LapStartTimeMs = lapTiming.SessionTimeMs
+			lapTiming.LapIndex++
+			localLapStartTimsMs = lapTiming.LapStartTimeMs
+			localLapIndex = lapTiming.LapIndex
+			
+			gpsData.TypeTrigger = false
+		}
+
+		// gpsData.PreviousLat = report.Lat
+		// gpsData.PreviousLon = report.Lon
+	}
+
+	// gps.AddFilter("TPV", tpvFilter)
+	// done := gps.Watch()
+	// <-done
+	// gps.Close()
 }
 
 func handleGpsDatalogging() {
@@ -386,7 +450,8 @@ func main() {
 
 	// Do GPS datalogging
 	if appSettings.LapTiming {
-		go handleGpsDatalogging()
+		// go handleGpsDatalogging()
+		go handleLapTiming()
 	}
 
 	for recv.Receive() {
@@ -400,6 +465,7 @@ func main() {
 		// Iterate over all the ID's now to match current message
 		switch frame.ID {
 		case 660, 1632:
+			gpsData.TypeTrigger = true
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
