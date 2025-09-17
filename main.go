@@ -20,20 +20,21 @@ import (
 	"go.einride.tech/can/pkg/socketcan"
 )
 
-// --- MISC ---
-const SETTINGSFILEPATH = "wt-app-settings.json"
+const (
+	// --- MISC ---
+	SETTINGSFILEPATH = "wt-app-settings.json"
 
-// --- Data conversion constants ---
-// Oil Temp
-const OILTEMP_A = 0.0014222095
-const OILTEMP_B = 0.00023729017
-const OILTEMP_C = 9.3273998e-8
-
-// Oil Pressure
-const OILPRESSURE_originalLow float64 = 0    //0.5
-const OILPRESSURE_originalHigh float64 = 5   //4.5
-const OILPRESSURE_desiredLow float64 = -100  //0
-const OILPRESSURE_desiredHigh float64 = 1100 //1000
+	// --- Data conversion constants ---
+	// Oil Temp
+	OILTEMP_A = 0.0014222095
+	OILTEMP_B = 0.00023729017
+	OILTEMP_C = 9.3273998e-8
+	// Oil Pressure
+	OILPRESSURE_originalLow float64 = 0    //0.5
+	OILPRESSURE_originalHigh float64 = 5   //4.5
+	OILPRESSURE_desiredLow float64 = -100  //0
+	OILPRESSURE_desiredHigh float64 = 1100 //1000
+)
 
 type AppSettings struct {
 	LoggingHertz int    `json:"loggingHertz"`
