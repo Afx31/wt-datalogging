@@ -102,7 +102,7 @@ var (
 	// localFlags             uint8
 
 	gpsData = GpsData{}
-	lapTiming = LapTiming{ LapIndex: 0, Flags: 0}
+	lapTiming = LapTiming{ LapIndex: 0 }
 )
 
 func DataLoggingAtSpecificHertz(w *csv.Writer) {
@@ -281,7 +281,7 @@ func handleLapTiming() {
 	// gps.Close()
 }
 
-func handleGpsDatalogging() {
+func handleLapTimingOld() {
 	var gps *gpsd.Session
 	var err error
 
