@@ -402,6 +402,7 @@ func main() {
 	// -------------------- Read CAN and write to file --------------------
 	conn, _ := socketcan.DialContext(context.Background(), "can", appSettings.CanChannel)
 	defer conn.Close()
+
 	recv := socketcan.NewReceiver(conn)
 
 	// Do datalogging
