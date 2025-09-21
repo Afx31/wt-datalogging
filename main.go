@@ -45,12 +45,9 @@ type AppSettings struct {
 	LapTiming    bool   `json:"lapTiming"`
 }
 
-type GpsData struct {
+type LapTiming struct {
 	PreviousLat float64
 	PreviousLon float64
-}
-
-type LapTiming struct {
 	SessionTimeMs     uint32   // absolute session time in ms, safe up to 49 days
 	LapIndex          uint16   // lap counter, safe up to 65k laps
 	LapStartTimeMs    uint32   // absolute session time at last lap start
@@ -100,7 +97,6 @@ var (
 	// localSectorStartTimeMs []uint32
 	// localFlags             uint8
 
-	gpsData = GpsData{}
 	lapTiming = LapTiming{ LapIndex: 0 }
 )
 
@@ -253,15 +249,15 @@ func handleLapTimingNew() {
 	tpvFilter := func(r interface{}) {
 		report := r.(*gpsd.TPVReport)
 
-		if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
+		if isThisTheFinishLine(lapTiming.PreviousLat, lapTiming.PreviousLon, report.Lat, report.Lon) {
 			lapTiming.LapStartTimeMs = lapTiming.SessionTimeMs
 			lapTiming.LapIndex++
 			localLapStartTimsMs = lapTiming.LapStartTimeMs
 			localLapIndex = lapTiming.LapIndex
 		}
 
-		gpsData.PreviousLat = report.Lat
-		gpsData.PreviousLon = report.Lon
+		lapTiming.PreviousLat = report.Lat
+		lapTiming.PreviousLon = report.Lon
 		localLat = report.Lat
 		localLon = report.Lon
 	}
@@ -311,15 +307,15 @@ func handleLapTimingOld() {
 		lapTiming.SessionTimeMs = uint32(timeDiff.Milliseconds())
 		
 
-		if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
+		if isThisTheFinishLine(lapTiming.PreviousLat, lapTiming.PreviousLon, report.Lat, report.Lon) {
 			lapTiming.LapStartTimeMs = lapTiming.SessionTimeMs
 			lapTiming.LapIndex++
 			localLapStartTimsMs = lapTiming.LapStartTimeMs
 			localLapIndex = lapTiming.LapIndex
 		}
 
-		gpsData.PreviousLat = report.Lat
-		gpsData.PreviousLon = report.Lon
+		lapTiming.PreviousLat = report.Lat
+		lapTiming.PreviousLon = report.Lon
 		localLat = report.Lat
 		localLon = report.Lon
 	}
