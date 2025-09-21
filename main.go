@@ -400,7 +400,10 @@ func main() {
 	defer writer.Flush()
 
 	// -------------------- Read CAN and write to file --------------------
-	conn, _ := socketcan.DialContext(context.Background(), "can", appSettings.CanChannel)
+	conn, err := socketcan.DialContext(context.Background(), "can", appSettings.CanChannel)
+	if err != nil {
+		log.Fatal("[ERROR] Cannot connect to CAN channel: ", appSettings.CanChannel)
+	}
 	defer conn.Close()
 
 	recv := socketcan.NewReceiver(conn)
