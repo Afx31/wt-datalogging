@@ -48,7 +48,6 @@ type AppSettings struct {
 type GpsData struct {
 	PreviousLat float64
 	PreviousLon float64
-	TypeTrigger bool
 }
 
 type LapTiming struct {
@@ -221,26 +220,25 @@ func isThisTheFinishLine(x3 float64, y3 float64, x4 float64, y4 float64) bool {
 	return (t >= 0 && t <= 1) && (u >= 0 && u <= 1)
 }
 
-func handleLapTiming() {
+func handleLapTimingNew() {
 	// Connect to GPS server....
-	// var gps *gpsd.Session
-	// var err error
+	var gps *gpsd.Session
+	var err error
 
-	// // Connect to the GPSD server
-	// for {
-	// 	gps, err = gpsd.Dial("localhost:2947")
-	// 	if err != nil {
-	// 		fmt.Println("Failed to connect to GPSD: ", err)
-	// 		fmt.Println("Retrying in 10 seconds...")
-	// 		time.Sleep(10 * time.Second)
-	// 		continue
-	// 	}
+	// Connect to the GPSD server
+	for {
+		gps, err = gpsd.Dial("localhost:2947")
+		if err != nil {
+			fmt.Println("Failed to connect to GPSD: ", err)
+			fmt.Println("Retrying in 10 seconds...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
 
-	// 	fmt.Println("Connected to GPSD")
-	// 	break
-	// }
-	// defer gps.Close()
-	
+		fmt.Println("Connected to GPSD")
+		break
+	}
+	defer gps.Close()	
 	
 	// Start session timer
 	sessionStart := time.Now()
@@ -252,33 +250,26 @@ func handleLapTiming() {
 		}
 	}()
 
+	tpvFilter := func(r interface{}) {
+		report := r.(*gpsd.TPVReport)
 
-	// tpvFilter := func(r interface{}) {
-	// 	report := r.(*gpsd.TPVReport)
-	for {
-		currentTimeMs := lapTiming.SessionTimeMs //- lapTiming.LapStartTimeMs
-		fmt.Println("Current: ", currentTimeMs)
-
-		//if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
-		if gpsData.TypeTrigger {
+		if isThisTheFinishLine(gpsData.PreviousLat, gpsData.PreviousLon, report.Lat, report.Lon) {
 			lapTiming.LapStartTimeMs = lapTiming.SessionTimeMs
 			lapTiming.LapIndex++
 			localLapStartTimsMs = lapTiming.LapStartTimeMs
 			localLapIndex = lapTiming.LapIndex
-			
-			gpsData.TypeTrigger = false
 		}
 
-		// gpsData.PreviousLat = report.Lat
-		// gpsData.PreviousLon = report.Lon
-		// localLat = report.Lat
-		// localLon = report.Lon
+		gpsData.PreviousLat = report.Lat
+		gpsData.PreviousLon = report.Lon
+		localLat = report.Lat
+		localLon = report.Lon
 	}
 
-	// gps.AddFilter("TPV", tpvFilter)
-	// done := gps.Watch()
-	// <-done
-	// gps.Close()
+	gps.AddFilter("TPV", tpvFilter)
+	done := gps.Watch()
+	<-done
+	gps.Close()
 }
 
 func handleLapTimingOld() {
@@ -411,10 +402,10 @@ func main() {
 	// Do datalogging
 	go DataLoggingAtSpecificHertz(writer)
 
-	// Do GPS datalogging
+	// Do Lap Timing
 	if appSettings.LapTiming {
-		// go handleGpsDatalogging()
-		go handleLapTiming()
+		// go handleLapTimingOld()
+		go handleLapTimingNew()
 	}
 
 	for recv.Receive() {
@@ -428,7 +419,6 @@ func main() {
 		// Iterate over all the ID's now to match current message
 		switch frame.ID {
 		case 660, 1632:
-			gpsData.TypeTrigger = true
 			localRpm = binary.BigEndian.Uint16(frame.Data[0:2])
 			localSpeed = binary.BigEndian.Uint16(frame.Data[2:4])
 			localGear = frame.Data[4]
