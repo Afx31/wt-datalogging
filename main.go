@@ -442,9 +442,7 @@ func main() {
 
 		case 662, 1634:
 			localTps = binary.BigEndian.Uint16(frame.Data[0:2])
-			if localTps == 65535 {
-				localTps = 0
-			}
+			if localTps > 65000 { localTps = 0 }
 			localMap = binary.BigEndian.Uint16(frame.Data[2:4]) / 10
 
 		case 663, 1635:
@@ -452,7 +450,8 @@ func main() {
 			localIgn = binary.BigEndian.Uint16(frame.Data[2:4])
 
 		case 664, 1636:
-			localLambdaRatio = math.Round(float64(32768.0)/float64(binary.BigEndian.Uint16(frame.Data[0:2]))*100) / 100
+			localLambdaRatio = math.Round(float64(32768.0)/float64(binary.BigEndian.Uint16(frame.Data[0:2])) * 100) / 100
+			if math.IsInf(localLambdaRatio, 0) { localLambdaRatio = 0 }
 
 		// K-Pro only
 		case 665, 1637:
@@ -472,11 +471,14 @@ func main() {
 			oilTempResistance := binary.BigEndian.Uint16(frame.Data[0:2])
 			kelvinTemp := 1 / (OILTEMP_A + OILTEMP_B * math.Log(float64(oilTempResistance)) + OILTEMP_C * math.Pow(math.Log(float64(oilTempResistance)), 3))
 			localAnalog0 = uint16(kelvinTemp - 273.15)
+			if localAnalog0 > 65000 { localAnalog0 = 0}
 
 			// Oil Pressure
 			oilPressureResistance := float64(binary.BigEndian.Uint16(frame.Data[2:4])) / 819.2
 			kPaValue := ((float64(oilPressureResistance) - OILPRESSURE_originalLow) / (OILPRESSURE_originalHigh - OILPRESSURE_originalLow) * (OILPRESSURE_desiredHigh - OILPRESSURE_desiredLow)) + OILPRESSURE_desiredLow
 			localAnalog1 = uint16(math.Round(kPaValue * 0.145038)) // Convert to psi
+			if localAnalog1 > 65000 { localAnalog1 = 0}
+
 			localAnalog2 = binary.BigEndian.Uint16(frame.Data[4:6])
 			localAnalog3 = binary.BigEndian.Uint16(frame.Data[6:8])
 
